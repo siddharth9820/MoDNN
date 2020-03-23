@@ -1,8 +1,19 @@
 #include <iostream>
 #include "layers.h"
+#include <random>
 
 using namespace layers;
 
+std::map<std::string,float*> init_buffer_map()
+{
+  std::map<std::string,float*> buffer_map;
+  buffer_map["input"] = nullptr;
+  buffer_map["output"] = nullptr;
+  buffer_map["workspace"] = nullptr;
+  buffer_map["params"] = nullptr;
+
+  return buffer_map;
+}
 
 
 ConvLayer::ConvLayer(cudnnHandle_t cudnn,
@@ -77,8 +88,8 @@ ConvLayer::ConvLayer(cudnnHandle_t cudnn,
                                                     &oheight,
                                                     &owidth));
 
-   std::cerr << "Output Image: " << obatch_size << " x "<< oheight << " x " << owidth << " x " << ochannels
-             << std::endl;
+   //std::cerr << "Output Image: " << obatch_size << " x "<< oheight << " x " << owidth << " x " << ochannels
+  //           << std::endl;
 
 
 
@@ -110,8 +121,8 @@ ConvLayer::ConvLayer(cudnnHandle_t cudnn,
                                                       &forward_workspace_bytes));
 
 
-    std::cerr << "Forward Workspace Size: " << (forward_workspace_bytes / 1048576.0) << "MB"
-              << std::endl;
+    //std::cerr << "Forward Workspace Size: " << (forward_workspace_bytes / 1048576.0) << "MB"
+    //          << std::endl;
 
 
 
@@ -147,12 +158,12 @@ ConvLayer::ConvLayer(cudnnHandle_t cudnn,
         data_algo, &temp));
 
     backward_workspace_bytes = std::max(temp,backward_workspace_bytes);
-    std::cerr << "Backward Workspace Size: " << (backward_workspace_bytes / 1048576.0) << "MB"
-              << std::endl;
+    //std::cerr << "Backward Workspace Size: " << (backward_workspace_bytes / 1048576.0) << "MB"
+    //          << std::endl;
   }
 
 
-int ConvLayer::get_output_shape_and_bytes(int shape[])
+int Layer::get_output_shape_and_bytes(int shape[])
   {
     //Get Output Shape in NHWC format
     shape[0] = obatch_size;
@@ -161,6 +172,11 @@ int ConvLayer::get_output_shape_and_bytes(int shape[])
     shape[3] = ochannels;
     return shape[0]*shape[1]*shape[2]*shape[3]*sizeof(float);
   }
+
+void Layer::forward()
+{
+
+}
 
 int ConvLayer::get_input_shape_and_bytes(int shape[])
   {
@@ -215,10 +231,54 @@ int ConvLayer::allocate_internal_mem(float **d_kernel, void **d_workspace)
 
   }
 
+void ConvLayer::populate_filter_params(float *d_kernel)
+{
+  float init_params[ochannels][ikernel_height][ikernel_width][ichannels];
+  std::normal_distribution<double> distribution(0,1);
+  std::default_random_engine generator;
+
+  for(int ochannel = 0; ochannel < ochannels; ochannel++)
+    for(int row=0;row<ikernel_height;row++)
+      for(int col=0;col<ikernel_width;col++)
+        for(int ichannel=0;ichannel < ichannels; ichannel++)
+          init_params[ochannel][row][col][ichannel] = distribution(generator);
+
+
+  cudaMemcpy(init_params,d_kernel,sizeof(init_params),cudaMemcpyHostToDevice);
+
+}
+
+
+
 ConvLayer::~ConvLayer()
-  {
+{
     cudnnDestroyTensorDescriptor(input_descriptor);
     cudnnDestroyTensorDescriptor(output_descriptor);
     cudnnDestroyFilterDescriptor(kernel_descriptor);
     cudnnDestroyConvolutionDescriptor(convolution_descriptor);
-  }
+}
+
+
+InputLayer::InputLayer(int batch_size, int height, int width, int channels)
+{
+  ibatch_size = obatch_size = batch_size;
+  iheight = oheight = height;
+  iwidth = owidth = width;
+  ichannels = ochannels = channels;
+}
+
+void InputLayer::randomly_populate(float *data)
+{
+  float init_params[obatch_size][oheight][owidth][ochannels];
+  std::normal_distribution<double> distribution(0,1);
+  std::default_random_engine generator;
+
+  for(int data_point = 0; data_point < obatch_size; data_point++)
+    for(int row=0;row<oheight;row++)
+      for(int col=0;col<owidth;col++)
+        for(int ochannel=0;ochannel < ochannels; ochannel++)
+          init_params[data_point][row][col][ochannel] = distribution(generator);
+
+
+  cudaMemcpy(init_params,data,sizeof(init_params),cudaMemcpyHostToDevice);
+}
