@@ -7,6 +7,7 @@
 
 
 using namespace layers;
+using namespace network
 
 
 
@@ -58,45 +59,40 @@ int main(int argc, const char* argv[]) {
            );
 
 
+  //Step 1 - Device Pointers
   float *d_kernel{nullptr}, *d_input{nullptr}, *d_output{nullptr};
   void *d_workspace{nullptr};
+
+  //Step 2 - host pointers
+  float* h_output;
+
+
   int input_shape[4],output_shape[4];
 
-
+  //Step 3 - allocate internal memory
   int layer_internal_mem = layer.allocate_internal_mem(&d_kernel,&d_workspace);
+
+  //Step 4 - Get input and output information
   int output_bytes = layer.get_output_shape_and_bytes(output_shape);
   int input_bytes = layer.get_input_shape_and_bytes(input_shape);
 
   std::cout << "Internal memory footprint of the Convolution Layer :- " << " " << layer_internal_mem <<std::endl;
 
+  //Step 5 - Allocate and copy to input and output memory
   cudaMalloc(&d_input, input_bytes);
   cudaMemcpy(d_input, image.ptr<float>(0), input_bytes, cudaMemcpyHostToDevice);
   cudaMalloc(&d_output, output_bytes);
   cudaMemset(d_output, 0, output_bytes);
 
-  const float kernel_template[5][5] = {
-    {1, 1, 1,1,1},
-    {1, 1, 1,1,1},
-    {1, 1, -24,1,1},
-    {1, 1, 1,1,1},
-    {1, 1, 1,1,1},
-  };
+  //Step 6 - Randomly initialize layer parameters
+  layer.populate_filter_params(d_kernel);
 
-  float h_kernel[3][5][5][3];
-  for (int kernel = 0; kernel < 3; ++kernel) {
-    for (int row = 0; row < 5; ++row) {
-      for (int col = 0; col < 5; ++col) {
-        for (int channel = 0; channel < 3; ++channel) {
-          h_kernel[kernel][row][col][channel] = kernel_template[row][col];
-        }
-      }
-    }
-  }
-
-  cudaMemcpy(d_kernel, h_kernel, sizeof(h_kernel), cudaMemcpyHostToDevice);
   const float alpha = 1.0f, beta = 0.0f;
+
+  //Step 7 - Forward Pass through the CNN
   layer.forward(alpha, beta, d_input, d_kernel, d_workspace, d_output);
-  float* h_output;
+
+  //Step 8 - Copy output from the device
   h_output = new float[output_bytes];
   cudaMemcpy(h_output, d_output, output_bytes, cudaMemcpyDeviceToHost);
   save_image("cudnn-out.png", h_output, output_shape[1], output_shape[2], image.channels());
