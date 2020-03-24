@@ -31,7 +31,7 @@ void seqNetwork::print_network_info()
   for(int i=0;i<num_layers;i++)
   {
     std::cout << "Layer "<<i+1<<" : "<<layer_info[i][0] << std::endl;
-    std::cout << "Dimensions : ";
+    std::cout << "Specs : ";
     for(int j=1;j<layer_info[i].size();j++)
       std::cout << layer_info[i][j] << " ";
     std::cout << std::endl;
@@ -195,7 +195,7 @@ int main(int argc, const char* argv[])
     cublasHandle_t cublas;
     cublasCreate(&cublas);
 
-    std::vector<std::string> specs = {"input 10 28 28 3","conv 3 3 5","flatten","fc 600"};
+    std::vector<std::string> specs = {"input 10 28 28 3","flatten","fc 100","fc 3"};
     seqNetwork nn = seqNetwork(cudnn,cublas,specs);
     nn.print_network_info();
     nn.allocate_memory();
