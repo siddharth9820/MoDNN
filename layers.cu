@@ -37,7 +37,7 @@ ConvLayer::ConvLayer(cudnnHandle_t cudnn,
 
     checkCUDNN(cudnnCreateTensorDescriptor(&input_descriptor));
     checkCUDNN(cudnnSetTensor4dDescriptor(input_descriptor,
-                                          /*format=*/CUDNN_TENSOR_NHWC,
+                                          /*format=*/CUDNN_TENSOR_NCHW,
                                           /*dataType=*/CUDNN_DATA_FLOAT,
                                           /*batch_size=*/batch_size,
                                           /*channels=*/input_channels,
@@ -47,7 +47,7 @@ ConvLayer::ConvLayer(cudnnHandle_t cudnn,
 
     checkCUDNN(cudnnSetFilter4dDescriptor(kernel_descriptor,
                                           /*dataType=*/CUDNN_DATA_FLOAT,
-                                          /*format=*/CUDNN_TENSOR_NHWC,
+                                          /*format=*/CUDNN_TENSOR_NCHW,
                                           /*out_channels=*/output_channels,
                                           /*in_channels=*/input_channels,
                                           /*kernel_height=*/kernel_height,
@@ -95,7 +95,7 @@ ConvLayer::ConvLayer(cudnnHandle_t cudnn,
 
    checkCUDNN(cudnnCreateTensorDescriptor(&output_descriptor));
    checkCUDNN(cudnnSetTensor4dDescriptor(output_descriptor,
-                                         /*format=*/CUDNN_TENSOR_NHWC,
+                                         /*format=*/CUDNN_TENSOR_NCHW,
                                          /*dataType=*/CUDNN_DATA_FLOAT,
                                          /*batch_size=*/obatch_size,
                                          /*channels=*/ochannels,
@@ -163,7 +163,7 @@ ConvLayer::ConvLayer(cudnnHandle_t cudnn,
   }
 
 
-int Layer::get_output_shape_and_bytes(int shape[])
+int ConvLayer::get_output_shape_and_bytes(int shape[])
   {
     //Get Output Shape in NHWC format
     shape[0] = obatch_size;
@@ -172,6 +172,16 @@ int Layer::get_output_shape_and_bytes(int shape[])
     shape[3] = ochannels;
     return shape[0]*shape[1]*shape[2]*shape[3]*sizeof(float);
   }
+
+  int InputLayer::get_output_shape_and_bytes(int shape[])
+    {
+      //Get Output Shape in NHWC format
+      shape[0] = obatch_size;
+      shape[1] = oheight;
+      shape[2] = owidth;
+      shape[3] = ochannels;
+      return shape[0]*shape[1]*shape[2]*shape[3]*sizeof(float);
+    }
 
 void Layer::forward()
 {
@@ -281,4 +291,89 @@ void InputLayer::randomly_populate(float *data)
 
 
   cudaMemcpy(init_params,data,sizeof(init_params),cudaMemcpyHostToDevice);
+}
+
+
+Flatten::Flatten(int batch_size,int input_height,int input_width,int input_channels)
+{
+  ibatch_size = batch_size;
+  ichannels = input_channels;
+  iheight = input_height;
+  iwidth = input_width;
+  obatch_size = batch_size;
+  oheight = batch_size*input_channels*input_height,input_width;
+
+}
+
+int Flatten::get_output_shape_and_bytes(int shape[])
+{
+  shape[0] = obatch_size;
+  shape[1] = oheight;
+  shape[2] = -1;
+  shape[3] = -1;
+
+
+
+  return obatch_size*oheight;
+}
+
+
+FCLayer::FCLayer(cublasHandle_t cublas,int batch_size, int input_height, int output_height)
+{
+  handle = cublas;
+  ibatch_size = batch_size;
+  iheight = input_height;
+  obatch_size = ibatch_size;
+  oheight = output_height;
+}
+
+int FCLayer::get_output_shape_and_bytes(int shape[])
+{
+  shape[0] = obatch_size;
+  shape[1] = oheight;
+  shape[2] = -1;
+  shape[3] = -1;
+
+  return obatch_size*oheight*sizeof(float);
+}
+
+int FCLayer::allocate_internal_mem(float **d_kernel)
+{
+  int param_size = iheight*oheight*sizeof(float);
+  cudaMalloc(d_kernel,param_size);
+  return param_size;
+}
+
+void FCLayer::populate_filter_params(float *d_kernel)
+{
+  float init_params[iheight][oheight];
+  std::normal_distribution<double> distribution(0,1);
+  std::default_random_engine generator;
+  for(int i=0;i<iheight;i++)
+    for(int j=0;j<oheight;j++)
+      init_params[i][j] = distribution(generator);
+
+
+
+  cudaMemcpy(init_params,d_kernel,iheight*oheight*sizeof(float),cudaMemcpyHostToDevice);
+}
+
+void FCLayer::forward(float * d_input, float * d_kernel, float * d_output)
+{
+  float alpha = 1.0,beta = 0.0;
+  cublasSgemm(handle,
+              CUBLAS_OP_N,
+              CUBLAS_OP_N,
+              oheight,/*m*/
+              obatch_size,/*n*/
+              iheight,/*k*/
+              &alpha,
+              d_kernel,
+              oheight,
+              d_input,
+              iheight,
+              &beta,
+              d_output,
+              oheight
+            );
 }

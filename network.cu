@@ -4,7 +4,7 @@
 using namespace network;
 using namespace layers;
 
-seqNetwork::seqNetwork(cudnnHandle_t cudnn,std::vector<std::string> &specs)
+seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std::string> &specs)
 {
   /*
   Specs is a vector of strings specifying the Neural Network.
@@ -13,6 +13,7 @@ seqNetwork::seqNetwork(cudnnHandle_t cudnn,std::vector<std::string> &specs)
   */
   num_layers = specs.size();
   handle = cudnn;
+  blas_handle = cublas;
   for(int i=0;i<num_layers;i++)
     {
       std::stringstream ss(specs[i]);
@@ -37,11 +38,15 @@ void seqNetwork::print_network_info()
   }
 }
 
-void seqNetwork::get_output_shape(int shape[])
+void seqNetwork::get_output_shape(int shape[],int i)
 {
-  Layer *last_layer = layer_objects[num_layers-1];
-  last_layer->get_output_shape_and_bytes(shape);
-
+  Layer *last_layer = layer_objects[i];
+  if (layer_info[i][0] == "flatten")
+    ((Flatten*)last_layer)->get_output_shape_and_bytes(shape);
+  else if(layer_info[i][0] == "conv")
+    ((ConvLayer*)last_layer) -> get_output_shape_and_bytes(shape);
+  else if(layer_info[i][0] == "fc")
+    ((FCLayer*)last_layer) -> get_output_shape_and_bytes(shape);
 
 }
 
@@ -50,7 +55,7 @@ void seqNetwork::allocate_memory()
   std::string layer_type;
   int shape[4],batch_size,rows,columns,channels;
   int kernel_rows,kernel_cols,kernel_channels,bytes;
-
+  int input_height,output_height;
 
   std::cout << "Allocating memory for the Neural Network" << std::endl;
   layer_buffers.resize(num_layers);
@@ -84,7 +89,7 @@ void seqNetwork::allocate_memory()
       kernel_cols = atoi(layer_info[i][2].c_str());
       kernel_channels = atoi(layer_info[i][3].c_str());
 
-      bytes = layer_objects[i-1]->get_output_shape_and_bytes(shape);
+      this->get_output_shape(shape,i-1);
 
       batch_size = shape[0];
       rows = shape[1];
@@ -92,6 +97,9 @@ void seqNetwork::allocate_memory()
       channels = shape[3];
 
       ConvLayer * new_conv = new ConvLayer(handle,batch_size,rows,columns,channels,kernel_rows,kernel_cols,kernel_channels,VALID);
+
+      bytes =  new_conv->get_output_shape_and_bytes(shape);
+
       layer_objects.push_back(new_conv);
 
       layer_buffers[i] = init_buffer_map();
@@ -99,7 +107,39 @@ void seqNetwork::allocate_memory()
       layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
       new_conv -> allocate_internal_mem(&(layer_buffers[i]["params"]),(void**)&(layer_buffers[i]["workspace"]));
 
+    }
+    else if(layer_type == "flatten")
+    {
+      this->get_output_shape(shape,i-1);
 
+      batch_size = shape[0];
+      rows = shape[1];
+      columns = shape[2];
+      channels = shape[3];
+      Flatten * new_flat = new Flatten(batch_size,rows,columns,channels);
+      layer_objects.push_back(new_flat);
+
+      layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
+      layer_buffers[i]["output"] = layer_buffers[i]["input"];
+    }
+    else if(layer_type == "fc")
+    {
+      this->get_output_shape(shape,i-1);
+
+      batch_size = shape[0];
+      input_height = shape[1];
+      output_height = atoi(layer_info[i][1].c_str());
+
+      FCLayer * new_fc = new FCLayer(blas_handle,batch_size,input_height,output_height);
+
+      bytes =  new_fc->get_output_shape_and_bytes(shape);
+
+      layer_objects.push_back(new_fc);
+
+      layer_buffers[i] = init_buffer_map();
+      cudaMalloc(&(layer_buffers[i]["output"]),bytes);
+      layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
+      new_fc -> allocate_internal_mem(&(layer_buffers[i]["params"]));
 
     }
 
@@ -119,6 +159,10 @@ void seqNetwork::randomise_params()
     {
       ((ConvLayer*)layer_objects[i])->populate_filter_params(layer_buffers[i]["params"]);
     }
+    else if(layer_info[i][0]=="fc")
+    {
+      ((FCLayer*)layer_objects[i])->populate_filter_params(layer_buffers[i]["params"]);
+    }
   }
 }
 
@@ -135,6 +179,11 @@ void seqNetwork::forward()
       ConvLayer * layer_obj = (ConvLayer*)(layer_objects[i]);
       layer_obj -> forward(1.0,0.0,buffer_map["input"],buffer_map["params"],(void*)buffer_map["workspace"],buffer_map["output"]);
     }
+    else if(layer_type=="fc")
+    {
+      FCLayer * layer_obj = (FCLayer*)(layer_objects[i]);
+      layer_obj -> forward(buffer_map["input"],buffer_map["params"],buffer_map["output"]);
+    }
   }
 }
 
@@ -143,12 +192,15 @@ int main(int argc, const char* argv[])
 {
     cudnnHandle_t cudnn;
     cudnnCreate(&cudnn);
-    std::vector<std::string> specs = {"input 10 28 28 3","conv 3 3 5","conv 3 3 4","conv 3 3 3"};
-    seqNetwork nn = seqNetwork(cudnn,specs);
+    cublasHandle_t cublas;
+    cublasCreate(&cublas);
+
+    std::vector<std::string> specs = {"input 10 28 28 3","conv 3 3 5","flatten","fc 600"};
+    seqNetwork nn = seqNetwork(cudnn,cublas,specs);
     nn.print_network_info();
     nn.allocate_memory();
     int shape[4];
-    nn.get_output_shape(shape);
+    nn.get_output_shape(shape,nn.num_layers-1);
 
     std::cout << "Printing output shape of Neural Network" << std::endl;
     for(int i=0;i<4;i++)
