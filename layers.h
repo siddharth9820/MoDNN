@@ -119,7 +119,7 @@ namespace layers
     Softmax(cudnnHandle_t cudnn,int batch_size,int input_height);
     int get_output_shape_and_bytes(int shape[]);
     void forward(float* d_input, float * d_output);
-
+    void backward(float* d_input, float *d_labels,float *d_diffinput);
 
  };
 
@@ -150,7 +150,7 @@ namespace network
       void enqueue_batch(float * batch);
       void randomise_params();
       void forward();
-
+      void backward();
 
 
 

@@ -431,3 +431,11 @@ void Softmax::forward(float* d_input, float * d_output)
                       output_descriptor,
                       d_output);
 }
+
+void Softmax::backward(float* d_input, float *d_labels,float *d_diffinput)
+{
+  float alpha = 1.0;
+  float beta = 0.0;
+  cudnnSoftmaxBackward(handle, CUDNN_SOFTMAX_ACCURATE, CUDNN_SOFTMAX_MODE_CHANNEL,&alpha,
+  input_descriptor, d_input, output_descriptor, d_diffinput,&beta ,output_descriptor, d_diffinput);
+}

@@ -226,6 +226,32 @@ void seqNetwork::forward()
   }
 }
 
+void seqNetwork::backward()
+{
+  for(int i=num_layers-1;i>=0;i--)
+  {
+    std::map<std::string,float*> buffer_map = layer_buffers[i];
+    std::string layer_type = layer_info[i][0];
+
+    if(layer_type=="input")continue;
+    else if(layer_type=="conv")
+    {
+      ConvLayer * layer_obj = (ConvLayer*)(layer_objects[i]);
+      //layer_obj -> forward(1.0,0.0,buffer_map["input"],buffer_map["params"],(void*)buffer_map["workspace"],buffer_map["output"]);
+    }
+    else if(layer_type=="fc")
+    {
+      FCLayer * layer_obj = (FCLayer*)(layer_objects[i]);
+      //layer_obj -> forward(buffer_map["input"],buffer_map["params"],buffer_map["output"]);
+    }
+    else if(layer_type == "softmax")
+    {
+      Softmax* layer_obj = (Softmax*)(layer_objects[i]);
+      layer_obj -> backward(buffer_map["input"],labels,buffer_map["output"]);
+    }
+  }
+}
+
 void seqNetwork::offload_buffer(int layer_number, std::string type)
 {
   int bytes,shape[4];

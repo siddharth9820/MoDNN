@@ -79,7 +79,13 @@ int main(int argc, const char* argv[])
       std::cout << std::endl;
     }
 
+    nn.backward();
 
+
+
+    std::cout <<"Printing result of softmax backward" << std::endl;
+    cudaMemcpy(output,nn.labels,shape[0]*shape[1]*sizeof(float),
+      cudaMemcpyDeviceToHost);
 
     return 0;
 
