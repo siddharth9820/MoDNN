@@ -44,8 +44,9 @@ namespace layers
   class InputLayer : public Layer
   {
     public:
-      InputLayer(int batch_size, int height, int width, int channels);//NHWC format
-      void randomly_populate(float * data);
+      int num_classes;
+      InputLayer(int batch_size, int height, int width, int channels, int num_classes);//NHWC format
+      void randomly_populate(float * data,float * labels);
       int get_output_shape_and_bytes(int shape[]);
 
   };
@@ -134,8 +135,9 @@ namespace network
       std::vector<std::vector<std::string > > layer_info;
       std::vector<std::map<std::string,float*> > layer_buffers;
       std::vector<std::map<std::string,float*> > layer_offloaded_buffers;
-
       std::vector< layers::Layer *> layer_objects;
+      float * labels;
+
       cudnnHandle_t handle;
       cublasHandle_t blas_handle;
 
@@ -144,10 +146,17 @@ namespace network
       void print_network_info();
       void allocate_memory();
       void get_output_shape(int shape[], int i);
-      void randomise_input();
+      void randomise_batch(); //randomise input to the neural network
+      void enqueue_batch(float * batch);
       void randomise_params();
       void forward();
+
+
+
+
       void offload_buffer(int layer_number,std::string type); //type is one of "output","workspace","input"
       void prefetch_buffer(int layer_number,std::string type);
+      ~seqNetwork();
+
   };
 }

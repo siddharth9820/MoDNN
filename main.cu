@@ -42,7 +42,7 @@ int main(int argc, const char* argv[])
     cublasHandle_t cublas;
     cublasCreate(&cublas);
 
-    std::vector<std::string> specs = {"input 10 28 28 1","conv 3 3 5","flatten","fc 100","fc 3","softmax"};
+    std::vector<std::string> specs = {"input 10 28 28 1 3","conv 3 3 5","flatten","fc 100","fc 3","softmax"};
     seqNetwork nn = seqNetwork(cudnn,cublas,specs);
     nn.print_network_info();
     nn.allocate_memory();
@@ -55,7 +55,7 @@ int main(int argc, const char* argv[])
     std::cout<<std::endl;
 
     std::cout << "Randomising input to the neural network" << std::endl;
-    nn.randomise_input();
+    nn.randomise_batch();
 
     std::cout << "Randomising Parameters of the neural network" << std::endl;
     nn.randomise_params();
@@ -81,6 +81,6 @@ int main(int argc, const char* argv[])
 
 
 
-    cudnnDestroy(cudnn);
+    return 0;
 
 }
