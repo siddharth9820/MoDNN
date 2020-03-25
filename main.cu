@@ -1,13 +1,8 @@
-#include <cudnn.h>
 #include "layers.h"
-#include <cassert>
-#include <cstdlib>
-#include <iostream>
-#include <opencv2/opencv.hpp>
 
 
 using namespace layers;
-using namespace network
+using namespace network;
 
 
 
@@ -40,70 +35,52 @@ void save_image(const char* output_filename,
 
 
 
-int main(int argc, const char* argv[]) {
+int main(int argc, const char* argv[])
+{
+    cudnnHandle_t cudnn;
+    cudnnCreate(&cudnn);
+    cublasHandle_t cublas;
+    cublasCreate(&cublas);
 
-  cv::Mat image = load_image(argv[1]);
-  cudnnHandle_t cudnn;
-  cudnnCreate(&cudnn);
+    std::vector<std::string> specs = {"input 10 28 28 1","conv 3 3 5","flatten","fc 100","fc 3","softmax"};
+    seqNetwork nn = seqNetwork(cudnn,cublas,specs);
+    nn.print_network_info();
+    nn.allocate_memory();
+    int shape[4];
+    nn.get_output_shape(shape,nn.num_layers-1);
 
-  padding_type pad = VALID;
-  ConvLayer layer = ConvLayer(cudnn,
-                  1, /*batch_size*/
-                  image.rows, /*input_height*/
-                  image.cols,/*input_cols*/
-                  image.channels(),/*input_channels*/
-                  5,/*kernel_height*/
-                  5,/*kernel_width*/
-                  3/*output_channels*/,
-                  pad
-           );
+    std::cout << "Printing output shape of Neural Network" << std::endl;
+    for(int i=0;i<4;i++)
+      std::cout << shape[i] <<" "<<" ";
+    std::cout<<std::endl;
 
+    std::cout << "Randomising input to the neural network" << std::endl;
+    nn.randomise_input();
 
-  //Step 1 - Device Pointers
-  float *d_kernel{nullptr}, *d_input{nullptr}, *d_output{nullptr};
-  void *d_workspace{nullptr};
+    std::cout << "Randomising Parameters of the neural network" << std::endl;
+    nn.randomise_params();
 
-  //Step 2 - host pointers
-  float* h_output;
+    std::cout << "Forward Pass for the neural network" << std::endl;
+    nn.forward();
 
 
-  int input_shape[4],output_shape[4];
-
-  //Step 3 - allocate internal memory
-  int layer_internal_mem = layer.allocate_internal_mem(&d_kernel,&d_workspace);
-
-  //Step 4 - Get input and output information
-  int output_bytes = layer.get_output_shape_and_bytes(output_shape);
-  int input_bytes = layer.get_input_shape_and_bytes(input_shape);
-
-  std::cout << "Internal memory footprint of the Convolution Layer :- " << " " << layer_internal_mem <<std::endl;
-
-  //Step 5 - Allocate and copy to input and output memory
-  cudaMalloc(&d_input, input_bytes);
-  cudaMemcpy(d_input, image.ptr<float>(0), input_bytes, cudaMemcpyHostToDevice);
-  cudaMalloc(&d_output, output_bytes);
-  cudaMemset(d_output, 0, output_bytes);
-
-  //Step 6 - Randomly initialize layer parameters
-  layer.populate_filter_params(d_kernel);
-
-  const float alpha = 1.0f, beta = 0.0f;
-
-  //Step 7 - Forward Pass through the CNN
-  layer.forward(alpha, beta, d_input, d_kernel, d_workspace, d_output);
-
-  //Step 8 - Copy output from the device
-  h_output = new float[output_bytes];
-  cudaMemcpy(h_output, d_output, output_bytes, cudaMemcpyDeviceToHost);
-  save_image("cudnn-out.png", h_output, output_shape[1], output_shape[2], image.channels());
+    std::cout<< "Offloading Output of Final Layer" << std::endl;
+    nn.offload_buffer(nn.num_layers-1,"output");
 
 
 
-  delete[] h_output;
-  cudaFree(d_kernel);
-  cudaFree(d_input);
-  cudaFree(d_output);
-  cudaFree(d_workspace);
-  cudnnDestroy(cudnn);
+    std::cout<< "Printing Output of Final Layer" << std::endl;
+    float * output = nn.layer_offloaded_buffers[nn.num_layers-1]["output"];
+
+    for(int i=0;i<shape[0];i++){
+      for(int j=0;j<shape[1];j++){
+          std::cout << output[i*shape[1]+j] << " ";
+      }
+      std::cout << std::endl;
+    }
+
+
+
+    cudnnDestroy(cudnn);
 
 }

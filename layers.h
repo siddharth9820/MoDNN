@@ -5,7 +5,9 @@
 #include <sstream>
 #include <map>
 #include <cublas_v2.h>
-
+#include <cassert>
+#include <cstdlib>
+#include <opencv2/opencv.hpp>
 
 enum padding_type{
   SAME,
