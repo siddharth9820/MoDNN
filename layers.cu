@@ -173,15 +173,6 @@ int ConvLayer::get_output_shape_and_bytes(int shape[])
     return shape[0]*shape[1]*shape[2]*shape[3]*sizeof(float);
   }
 
-  int InputLayer::get_output_shape_and_bytes(int shape[])
-    {
-      //Get Output Shape in NHWC format
-      shape[0] = obatch_size;
-      shape[1] = oheight;
-      shape[2] = owidth;
-      shape[3] = ochannels;
-      return shape[0]*shape[1]*shape[2]*shape[3]*sizeof(float);
-    }
 
 void Layer::forward()
 {
@@ -244,7 +235,7 @@ int ConvLayer::allocate_internal_mem(float **d_kernel, void **d_workspace)
 void ConvLayer::populate_filter_params(float *d_kernel)
 {
   float init_params[ochannels][ikernel_height][ikernel_width][ichannels];
-  std::normal_distribution<double> distribution(0,1);
+  std::normal_distribution<float> distribution(0,0.01);
   std::default_random_engine generator;
 
   for(int ochannel = 0; ochannel < ochannels; ochannel++)
@@ -254,7 +245,7 @@ void ConvLayer::populate_filter_params(float *d_kernel)
           init_params[ochannel][row][col][ichannel] = distribution(generator);
 
 
-  cudaMemcpy(init_params,d_kernel,sizeof(init_params),cudaMemcpyHostToDevice);
+  cudaMemcpy(d_kernel,init_params,sizeof(init_params),cudaMemcpyHostToDevice);
 
 }
 
@@ -277,20 +268,35 @@ InputLayer::InputLayer(int batch_size, int height, int width, int channels)
   ichannels = ochannels = channels;
 }
 
+int InputLayer::get_output_shape_and_bytes(int shape[])
+{
+    //Get Output Shape in NHWC format
+    shape[0] = obatch_size;
+    shape[1] = oheight;
+    shape[2] = owidth;
+    shape[3] = ochannels;
+    return shape[0]*shape[1]*shape[2]*shape[3]*sizeof(float);
+}
+
+
+
 void InputLayer::randomly_populate(float *data)
 {
   float init_params[obatch_size][oheight][owidth][ochannels];
-  std::normal_distribution<double> distribution(0,1);
+  std::normal_distribution<float> distribution(0,0.01);
   std::default_random_engine generator;
 
   for(int data_point = 0; data_point < obatch_size; data_point++)
     for(int row=0;row<oheight;row++)
       for(int col=0;col<owidth;col++)
-        for(int ochannel=0;ochannel < ochannels; ochannel++)
+        for(int ochannel=0;ochannel < ochannels; ochannel++){
           init_params[data_point][row][col][ochannel] = distribution(generator);
 
+        }
 
-  cudaMemcpy(init_params,data,sizeof(init_params),cudaMemcpyHostToDevice);
+  //std::cout << "Checking random input layer" << std::endl;
+  //std::cout << init_params[0][0][0][1] << std::endl;
+  cudaMemcpy(data,init_params,sizeof(init_params),cudaMemcpyHostToDevice);
 }
 
 
@@ -301,7 +307,7 @@ Flatten::Flatten(int batch_size,int input_height,int input_width,int input_chann
   iheight = input_height;
   iwidth = input_width;
   obatch_size = batch_size;
-  oheight = batch_size*input_channels*input_height,input_width;
+  oheight = input_channels*input_height*input_width;
 
 }
 
@@ -314,7 +320,7 @@ int Flatten::get_output_shape_and_bytes(int shape[])
 
 
 
-  return obatch_size*oheight;
+  return obatch_size*oheight*sizeof(float);
 }
 
 
@@ -347,7 +353,7 @@ int FCLayer::allocate_internal_mem(float **d_kernel)
 void FCLayer::populate_filter_params(float *d_kernel)
 {
   float init_params[iheight][oheight];
-  std::normal_distribution<double> distribution(0,1);
+  std::normal_distribution<float> distribution(0,0.01);
   std::default_random_engine generator;
   for(int i=0;i<iheight;i++)
     for(int j=0;j<oheight;j++)
@@ -355,7 +361,7 @@ void FCLayer::populate_filter_params(float *d_kernel)
 
 
 
-  cudaMemcpy(init_params,d_kernel,iheight*oheight*sizeof(float),cudaMemcpyHostToDevice);
+  cudaMemcpy(d_kernel,init_params,sizeof(init_params),cudaMemcpyHostToDevice);
 }
 
 void FCLayer::forward(float * d_input, float * d_kernel, float * d_output)
@@ -376,4 +382,40 @@ void FCLayer::forward(float * d_input, float * d_kernel, float * d_output)
               d_output,
               oheight
             );
+}
+
+Softmax::Softmax(cudnnHandle_t cudnn,int batch_size,int input_height)
+{
+  handle = cudnn;
+  ibatch_size = obatch_size = batch_size;
+  iheight = oheight = input_height;
+  cudnnCreateTensorDescriptor(&input_descriptor);
+  cudnnCreateTensorDescriptor(&output_descriptor);
+  checkCUDNN(cudnnSetTensor4dDescriptor(input_descriptor,CUDNN_TENSOR_NCHW,CUDNN_DATA_FLOAT,ibatch_size,iheight,1,1));
+  checkCUDNN(cudnnSetTensor4dDescriptor(output_descriptor,CUDNN_TENSOR_NCHW,CUDNN_DATA_FLOAT,ibatch_size,iheight,1,1));
+}
+
+int Softmax::get_output_shape_and_bytes(int shape[])
+{
+  shape[0] = obatch_size;
+  shape[1] = oheight;
+  shape[2] = -1;
+  shape[3] = -1;
+
+  return obatch_size*oheight*sizeof(float);
+}
+
+void Softmax::forward(float* d_input, float * d_output)
+{
+  float alpha = 1.0;
+  float beta = 0.0;
+  cudnnSoftmaxForward(handle,
+                      CUDNN_SOFTMAX_ACCURATE,
+                      CUDNN_SOFTMAX_MODE_CHANNEL,
+                      &alpha,
+                      input_descriptor,
+                      d_input,
+                      &beta,
+                      output_descriptor,
+                      d_output);
 }

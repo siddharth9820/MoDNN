@@ -5,7 +5,9 @@
 #include <sstream>
 #include <map>
 #include <cublas_v2.h>
-
+#include <cassert>
+#include <cstdlib>
+#include <opencv2/opencv.hpp>
 
 enum padding_type{
   SAME,
@@ -104,6 +106,21 @@ namespace layers
    Flatten(int batch_size,int input_height,int input_width,int input_channels);
    int get_output_shape_and_bytes(int shape[]);
  };
+ class Softmax : public Layer
+ {
+
+  public:
+    cudnnHandle_t handle;
+    cudnnTensorDescriptor_t input_descriptor;
+    cudnnTensorDescriptor_t output_descriptor;
+
+
+    Softmax(cudnnHandle_t cudnn,int batch_size,int input_height);
+    int get_output_shape_and_bytes(int shape[]);
+    void forward(float* d_input, float * d_output);
+
+
+ };
 
 }
 
@@ -116,6 +133,8 @@ namespace network
       int num_layers;
       std::vector<std::vector<std::string > > layer_info;
       std::vector<std::map<std::string,float*> > layer_buffers;
+      std::vector<std::map<std::string,float*> > layer_offloaded_buffers;
+
       std::vector< layers::Layer *> layer_objects;
       cudnnHandle_t handle;
       cublasHandle_t blas_handle;
@@ -128,5 +147,7 @@ namespace network
       void randomise_input();
       void randomise_params();
       void forward();
+      void offload_buffer(int layer_number,std::string type); //type is one of "output","workspace","input"
+      void prefetch_buffer(int layer_number,std::string type);
   };
 }
