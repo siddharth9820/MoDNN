@@ -8,6 +8,8 @@
 #include <cassert>
 #include <cstdlib>
 #include <opencv2/opencv.hpp>
+#include <cuda.h>
+#include <fstream>
 
 enum padding_type{
   SAME,
@@ -24,9 +26,28 @@ enum padding_type{
     }                                                        \
   }
 
+static const char *cublasGetErrorString(cublasStatus_t error);
+
+#define checkCUBLAS(expression)                              \
+  {                                                          \
+    cublasStatus_t status = (expression);                     \
+    std::cerr << "Doing a CUBLAS OP" <<" ";                   \
+    std::cerr << status <<" "<<CUBLAS_STATUS_SUCCESS<< std::endl;\
+    if (status != CUBLAS_STATUS_SUCCESS) {                    \
+      std::cerr << "Error on line " << __LINE__ << ": "      \
+                << cublasGetErrorString(status) << std::endl; \
+      std::exit(EXIT_FAILURE);                               \
+    }                                                        \
+  }
+
+
+#define MU 0
+#define SIGMA 0.1
+
 
 std::map<std::string,float*> init_buffer_map();
-
+__global__ void SoftmaxLossBackprop(const int *label, int num_labels, int batch_size, float *diff);
+int calc_bytes_from_shape(int shape[]);
 
 namespace layers
 {
@@ -82,7 +103,7 @@ namespace layers
     size_t get_backward_workspace_bytes();
     size_t get_total_workspace_size();
     void forward(float alpha, float beta, float* d_input, float* d_kernel, void* d_workspace, float * d_output);
-    int allocate_internal_mem(float **d_kernel, void **d_workspace);
+    int allocate_internal_mem(float **d_kernel, void **d_workspace,float **d_diffkernel);
     void populate_filter_params(float *d_kernel);
     int get_output_shape_and_bytes(int shape[]);
 
@@ -96,9 +117,12 @@ namespace layers
     cublasHandle_t handle;
     FCLayer(cublasHandle_t cublas,int batch_size,int input_height,int output_height);
     int get_output_shape_and_bytes(int shape[]);
-    void forward(float* d_input, float * d_kernel, float * d_output);
-    int allocate_internal_mem(float **d_kernel);
+    void forward(float* d_input, float * d_kernel, float * d_output); //checked with numpy and working correctly
+    void backward(float *d_input, float* d_kernel,float *d_diffkernel,float *d_diffinput, float *d_diffoutput); //checked with numpy for parameter gradient
+    int allocate_internal_mem(float **d_kernel,float **d_diffkernel);
     void populate_filter_params(float *d_kernel);
+    int get_input_shape_and_bytes(int shape[]);
+    int get_params_shape_and_bytes(int shape[]);
 
  };
  class Flatten : public Layer
@@ -106,7 +130,9 @@ namespace layers
   public:
    Flatten(int batch_size,int input_height,int input_width,int input_channels);
    int get_output_shape_and_bytes(int shape[]);
+   int get_input_shape_and_bytes(int shape[]);
  };
+
  class Softmax : public Layer
  {
 
@@ -114,12 +140,14 @@ namespace layers
     cudnnHandle_t handle;
     cudnnTensorDescriptor_t input_descriptor;
     cudnnTensorDescriptor_t output_descriptor;
+    cudnnTensorDescriptor_t diff_descriptor;
 
 
     Softmax(cudnnHandle_t cudnn,int batch_size,int input_height);
     int get_output_shape_and_bytes(int shape[]);
+    int get_input_shape_and_bytes(int shape[]);
     void forward(float* d_input, float * d_output);
-    void backward(float* d_input, float *d_labels,float *d_diffinput);
+    void backward(const int *label, float *diff, float * output);
 
  };
 
@@ -136,7 +164,7 @@ namespace network
       std::vector<std::map<std::string,float*> > layer_buffers;
       std::vector<std::map<std::string,float*> > layer_offloaded_buffers;
       std::vector< layers::Layer *> layer_objects;
-      float * labels;
+
 
       cudnnHandle_t handle;
       cublasHandle_t blas_handle;
@@ -154,7 +182,7 @@ namespace network
 
 
 
-      void offload_buffer(int layer_number,std::string type); //type is one of "output","workspace","input"
+      float* offload_buffer(int layer_number,std::string type,int shape[]); //type is one of "output","workspace","input"
       void prefetch_buffer(int layer_number,std::string type);
       ~seqNetwork();
 
