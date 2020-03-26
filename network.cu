@@ -1,5 +1,5 @@
 #include "layers.h"
-
+#include "pooling_layer.h"
 
 using namespace network;
 using namespace layers;
@@ -51,7 +51,8 @@ void seqNetwork::get_output_shape(int shape[],int i)
     ((Softmax*)last_layer) -> get_output_shape_and_bytes(shape);
   else if(layer_info[i][0] == "input")
     ((InputLayer*)last_layer) -> get_output_shape_and_bytes(shape);
-
+  else if(layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool" )
+    ((PoolingLayer*)last_layer)->get_output_shape_and_bytes(shape);
 }
 
 void seqNetwork::allocate_memory()
@@ -60,6 +61,9 @@ void seqNetwork::allocate_memory()
   int shape[4],batch_size,rows,columns,channels;
   int kernel_rows,kernel_cols,kernel_channels,bytes;
   int input_height,output_height;
+  int window_height, window_width;
+  int vertical_stride, horizontal_stride;
+  int pad, pooling_type;
 
   std::cout << "Allocating memory for the Neural Network" << std::endl;
   layer_buffers.resize(num_layers);
@@ -171,6 +175,49 @@ void seqNetwork::allocate_memory()
 
 
     }
+    else if(layer_type == "maxpool" || layer_type == "avgpool") {
+      this->get_output_shape(shape, i-1);
+      
+      window_height = atoi(layer_info[i][1].c_str());
+      window_width = atoi(layer_info[i][2].c_str());
+      vertical_stride = atoi(layer_info[i][3].c_str());
+      horizontal_stride = atoi(layer_info[i][4].c_str());
+      pad = VALID;
+
+      if (layer_type == "maxpool")
+        pooling_type = CUDNN_POOLING_MAX;
+      else if (layer_type == "avgpool"){
+        if (pad == VALID)
+          pooling_type = CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING;
+        else
+          pooling_type = CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING;
+      }
+
+      batch_size = shape[0];
+      rows = shape[1];
+      columns = shape[2];
+      channels = shape[3];
+
+      PoolingLayer* new_pooling = new PoolingLayer(handle, 
+        window_height, 
+        window_width,
+        vertical_stride,
+        horizontal_stride,
+        batch_size,
+        rows,
+        columns,
+        channels,
+        pad,
+        pooling_type
+      );
+
+      bytes =  new_pooling->get_output_shape_and_bytes(shape);
+      layer_buffers[i] = init_buffer_map();
+      layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
+      cudaMalloc(&(layer_buffers[i]["output"]),bytes);
+
+      layer_objects.push_back(new_pooling);
+    }
 
   }
 }
@@ -218,6 +265,10 @@ void seqNetwork::forward()
       Softmax* layer_obj = (Softmax*)(layer_objects[i]);
       layer_obj -> forward(buffer_map["input"],buffer_map["output"]);
     }
+    else if(layer_type == "maxpool" || layer_type == "avgpool"){
+      PoolingLayer* layer_obj = (PoolingLayer*) (layer_objects[i]);
+      layer_obj->forward(1.0,0.0,buffer_map["input"], buffer_map["output"]);
+    }
   }
 }
 
@@ -258,6 +309,11 @@ void seqNetwork::offload_buffer(int layer_number, std::string type)
   else if(layer_type == "input")
   {
     InputLayer * layer_obj = (InputLayer*)(layer_objects[layer_number]);
+    if(type=="output")
+      bytes = layer_obj->get_output_shape_and_bytes(shape);
+  }
+  else if (layer_type == "maxpool" || layer_type == "avgpool"){
+    PoolingLayer * layer_obj = (PoolingLayer*)(layer_objects[layer_number]);
     if(type=="output")
       bytes = layer_obj->get_output_shape_and_bytes(shape);
   }
