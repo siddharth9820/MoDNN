@@ -8,6 +8,10 @@
 #include <cassert>
 #include <cstdlib>
 #include <opencv2/opencv.hpp>
+#include <random>
+
+#ifndef LAYER_H_
+#define LAYER_H_
 
 enum padding_type{
   SAME,
@@ -40,15 +44,6 @@ namespace layers
 
   };
 
-
-  class InputLayer : public Layer
-  {
-    public:
-      InputLayer(int batch_size, int height, int width, int channels);//NHWC format
-      void randomly_populate(float * data);
-      int get_output_shape_and_bytes(int shape[]);
-
-  };
   class ConvLayer : public Layer
   {
     public:
@@ -121,9 +116,7 @@ namespace layers
 
 
  };
-
 }
-
 
 namespace network
 {
@@ -151,3 +144,5 @@ namespace network
       void prefetch_buffer(int layer_number,std::string type);
   };
 }
+
+#endif

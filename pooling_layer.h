@@ -1,7 +1,11 @@
 #include "layers.h"
 
+#ifndef POOLING_LAYER_H_
+#define POOLING_LAYER_H_  
+
 namespace layers{
-class PoolingLayer : public Layer {
+
+class PoolingLayer : public layers::Layer {
 	private:
 		cudnnHandle_t* handle_;
 		cudnnTensorDescriptor_t input_descriptor;
@@ -19,10 +23,12 @@ class PoolingLayer : public Layer {
                     int input_width,
                     int input_channels,
 					padding_type pad, 
-					int mode
+					cudnnPoolingMode_t mode
 				);
 		void forward(float alpha, float beta, float* d_input, float* d_output);
 		void backward(float* d_input, float* d_input_dx, float* d_output, float* d_output_dx);
 		int get_output_shape_and_bytes(int shape[]);
 	};
 }
+
+#endif

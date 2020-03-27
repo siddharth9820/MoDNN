@@ -1,4 +1,3 @@
-#include <iostream>
 #include "pooling_layer.h"
 
 using namespace layers;
@@ -13,13 +12,13 @@ PoolingLayer::PoolingLayer(cudnnHandle_t* handle,
     int input_width,
     int input_channels,
     padding_type pad, 
-    int mode) {
+    cudnnPoolingMode_t mode) {
     // mode -- CUDNN_POOLING_MAX(0), CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING(1)
     //                 CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING(2), CUDNN_POOLING_MAX_DETERMINISTIC(3)
 
-    handle_ = cudnn_handle;
-    ibactch_size = batch_size;
-    ichannels = channels;
+    handle_ = handle;
+    ibatch_size = batch_size;
+    ichannels = input_channels;
     iheight = input_height;
     iwidth = input_width;
 
@@ -54,7 +53,7 @@ PoolingLayer::PoolingLayer(cudnnHandle_t* handle,
     checkCUDNN(cudnnSetTensor4dDescriptor(input_descriptor,
         /*format=*/CUDNN_TENSOR_NCHW,
         /*dataType=*/CUDNN_DATA_FLOAT,
-        /*batch_size=*/ibactch_size,
+        /*batch_size=*/ibatch_size,
         /*channels=*/ichannels,
         /*image_height=*/iheight,
         /*image_width=*/iwidth));
@@ -78,13 +77,13 @@ PoolingLayer::PoolingLayer(cudnnHandle_t* handle,
 
 }
 
-void PoolingLayer::forward(float alpha,float beta, float* d_input, float* d_output) {
-    checkCUDNN(cudnnPoolingForward(*handle,
+void PoolingLayer::forward(float alpha, float beta, float* d_input, float* d_output) {
+    checkCUDNN(cudnnPoolingForward(*handle_,
         pooling_descriptor,
         &alpha,
         input_descriptor,
         d_input,
-        beta,
+        &beta,
         output_descriptor,
         d_output
     ));
@@ -92,8 +91,8 @@ void PoolingLayer::forward(float alpha,float beta, float* d_input, float* d_outp
 
 int PoolingLayer::get_output_shape_and_bytes(int shape[]) {
     shape[0] = obatch_size;
-    shape[1] = ochannels;
-    shape[2] = oheight;
-    shape[3] = owidth;
+    shape[1] = oheight;
+    shape[2] = owidth;
+    shape[3] = ochannels;
     return sizeof(float)*obatch_size*ochannels*oheight*owidth;
 }

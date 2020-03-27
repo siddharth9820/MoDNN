@@ -1,6 +1,6 @@
-#include "layers.h"
 #include "pooling_layer.h"
-
+#include "input_layer.h"
+ 
 using namespace network;
 using namespace layers;
 
@@ -63,7 +63,8 @@ void seqNetwork::allocate_memory()
   int input_height,output_height;
   int window_height, window_width;
   int vertical_stride, horizontal_stride;
-  int pad, pooling_type;
+  padding_type pad;
+  cudnnPoolingMode_t pooling_type;
 
   std::cout << "Allocating memory for the Neural Network" << std::endl;
   layer_buffers.resize(num_layers);
@@ -80,8 +81,11 @@ void seqNetwork::allocate_memory()
       rows = atoi(layer_info[i][2].c_str());
       columns = atoi(layer_info[i][3].c_str());
       channels = atoi(layer_info[i][4].c_str());
+      num_classes = atoi(layer_info[i][5].c_str());
 
-      InputLayer * new_ip = new InputLayer(batch_size,rows,columns,channels);
+      std::cout << "Setting up input layer - "<< batch_size <<" " << rows << " "<<columns <<" "<<channels << std::endl;
+
+      InputLayer * new_ip = new InputLayer(batch_size,rows,columns,channels,num_classes);
       layer_objects.push_back(new_ip);
 
       bytes = new_ip->get_output_shape_and_bytes(shape);
@@ -104,6 +108,8 @@ void seqNetwork::allocate_memory()
       rows = shape[1];
       columns = shape[2];
       channels = shape[3];
+
+      std::cout << "Setting up conv layer - "<< batch_size <<" " << rows << " "<<columns <<" "<<channels << std::endl;
 
       ConvLayer * new_conv = new ConvLayer(handle,batch_size,rows,columns,channels,kernel_rows,kernel_cols,kernel_channels,VALID);
 
@@ -141,10 +147,11 @@ void seqNetwork::allocate_memory()
       input_height = shape[1];
       output_height = atoi(layer_info[i][1].c_str());
 
+      std::cout << "Setting up fc layer - "<< batch_size <<" " << input_height << std::endl;
+
       FCLayer * new_fc = new FCLayer(blas_handle,batch_size,input_height,output_height);
 
       bytes =  new_fc->get_output_shape_and_bytes(shape);
-
 
 
       layer_buffers[i] = init_buffer_map();
@@ -198,7 +205,9 @@ void seqNetwork::allocate_memory()
       columns = shape[2];
       channels = shape[3];
 
-      PoolingLayer* new_pooling = new PoolingLayer(handle, 
+      std::cout << "Setting up pooling layer - "<< batch_size <<" " << rows << " "<<columns <<" "<<channels << std::endl;
+
+      PoolingLayer* new_pooling = new PoolingLayer(&handle, 
         window_height, 
         window_width,
         vertical_stride,
@@ -248,7 +257,6 @@ void seqNetwork::forward()
   {
     std::map<std::string,float*> buffer_map = layer_buffers[i];
     std::string layer_type = layer_info[i][0];
-
     if(layer_type=="input")continue;
     else if(layer_type=="conv")
     {
