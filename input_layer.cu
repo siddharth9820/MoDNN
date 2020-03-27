@@ -1,6 +1,7 @@
 #include "input_layer.h"
 
 using namespace layers;
+
 InputLayer::InputLayer(int batch_size, int height, int width, int channels,int num_classes)
 {
   ibatch_size = obatch_size = batch_size;
@@ -24,17 +25,20 @@ int InputLayer::get_output_shape_and_bytes(int shape[])
 
 void InputLayer::randomly_populate(float *data,float * labels)
 {
-  float init_params[obatch_size][oheight][owidth][ochannels];
-  int init_labels[obatch_size];
+  float* init_params = (float*)malloc( obatch_size *oheight*owidth*ochannels*sizeof(float));
+  int* init_labels = (int*)malloc(obatch_size*sizeof(int));
   int class_;
   std::normal_distribution<float> distribution(MU,SIGMA);
   std::default_random_engine generator;
 
+  int dim1 = owidth*ochannels;
+  int dim2 = oheight*dim1;
+  
   for(int data_point = 0; data_point < obatch_size; data_point++)
     for(int row=0;row<oheight;row++)
       for(int col=0;col<owidth;col++)
         for(int ochannel=0;ochannel < ochannels; ochannel++){
-          init_params[data_point][row][col][ochannel] = distribution(generator);
+          init_params[data_point*dim2 + row*dim1 + col*ochannels + ochannel] = distribution(generator);
         }
 
   //std::cout << "Checking random input layer" << std::endl;
