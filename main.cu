@@ -7,7 +7,7 @@ using namespace network;
 
 
 cv::Mat load_image(const char* image_path) {
-  cv::Mat image = cv::imread(image_path, CV_LOAD_IMAGE_COLOR);
+  cv::Mat image = cv::imread(image_path, cv::IMREAD_COLOR );
   image.convertTo(image, CV_32FC3);
   cv::normalize(image, image, 0, 1, cv::NORM_MINMAX);
   std::cerr << "Input Image: " << image.rows << " x " << image.cols << " x "
@@ -42,7 +42,7 @@ int main(int argc, const char* argv[])
     cublasHandle_t cublas;
     cublasCreate(&cublas);
 
-    std::vector<std::string> specs = {"input 10 5 5 1 5","conv 3 3 5","flatten","fc 5","softmax"};
+    std::vector<std::string> specs = {"input 10 5 5 1 5","conv 3 3 5","maxpool 2 2 2 2","flatten","fc 5","softmax"};
     seqNetwork nn = seqNetwork(cudnn,cublas,specs);
     nn.print_network_info();
     nn.allocate_memory();

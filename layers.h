@@ -1,3 +1,6 @@
+#ifndef LAYER_H_
+#define LAYER_H_
+
 #include <cudnn.h>
 #include <vector>
 #include <string>
@@ -8,6 +11,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <opencv2/opencv.hpp>
+#include <random>
 #include <cuda.h>
 #include <fstream>
 
@@ -61,56 +65,6 @@ namespace layers
 
   };
 
-
-  class InputLayer : public Layer
-  {
-    public:
-      int num_classes;
-      InputLayer(int batch_size, int height, int width, int channels, int num_classes);//NHWC format
-      void randomly_populate(float * data,float * labels);
-      int get_output_shape_and_bytes(int shape[]);
-
-  };
-  class ConvLayer : public Layer
-  {
-    public:
-      cudnnHandle_t handle;
-      cudnnTensorDescriptor_t input_descriptor;
-      cudnnFilterDescriptor_t kernel_descriptor;
-      cudnnConvolutionDescriptor_t convolution_descriptor;
-      cudnnTensorDescriptor_t output_descriptor;
-      cudnnTensorDescriptor_t filter_derivative_descriptor;
-      cudnnConvolutionFwdAlgo_t convolution_algorithm;
-      cudnnConvolutionBwdFilterAlgo_t filter_algo;
-      cudnnConvolutionBwdDataAlgo_t data_algo;
-      size_t forward_workspace_bytes, backward_workspace_bytes;
-      int ikernel_width,ikernel_height;
-
-
-
-    ConvLayer(cudnnHandle_t cudnn,
-                    int batch_size,
-                    int input_height,
-                    int input_width,
-                    int input_channels,
-                    int kernel_height,
-                    int kernel_width,
-                    int output_channels,
-                    padding_type pad
-             );
-    int get_input_shape_and_bytes(int shape[]);
-    size_t get_forward_workspace_bytes();
-    size_t get_backward_workspace_bytes();
-    size_t get_total_workspace_size();
-    void forward(float alpha, float beta, float* d_input, float* d_kernel, void* d_workspace, float * d_output);
-    int allocate_internal_mem(float **d_kernel, void **d_workspace,float **d_diffkernel);
-    void populate_filter_params(float *d_kernel);
-    int get_output_shape_and_bytes(int shape[]);
-
-    ~ConvLayer();
-
-  };
-
  class FCLayer : public Layer
  {
   public:
@@ -150,9 +104,7 @@ namespace layers
     void backward(const int *label, float *diff, float * output);
 
  };
-
 }
-
 
 namespace network
 {
@@ -188,3 +140,5 @@ namespace network
 
   };
 }
+
+#endif
