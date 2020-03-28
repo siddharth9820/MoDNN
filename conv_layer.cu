@@ -229,7 +229,7 @@ void ConvLayer::populate_filter_params(float *d_kernel)
           init_params[ochannel*dim2 + row*dim1 + col*ichannels + ichannel] = distribution(generator);
 
 
-  cudaMemcpy(d_kernel,init_params,sizeof(init_params),cudaMemcpyHostToDevice);
+  cudaMemcpy(d_kernel,init_params,ochannels*ikernel_height*ikernel_width*ichannels*sizeof(float),cudaMemcpyHostToDevice);
 
 }
 

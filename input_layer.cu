@@ -43,7 +43,7 @@ void InputLayer::randomly_populate(float *data,float * labels)
 
   //std::cout << "Checking random input layer" << std::endl;
   //std::cout << init_params[0][0][0][1] << std::endl;
-  cudaMemcpy(data,init_params,sizeof(init_params),cudaMemcpyHostToDevice);
+  cudaMemcpy(data,init_params, obatch_size *oheight*owidth*ochannels*sizeof(float),cudaMemcpyHostToDevice);
 
   for (int j = 0; j < obatch_size; j++)
   {

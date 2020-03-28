@@ -126,7 +126,7 @@ void FCLayer::populate_filter_params(float *d_kernel)
     for(int j=0;j<oheight;j++)
       init_params[i*oheight+j] = distribution(generator);
 
-  cudaMemcpy(d_kernel,init_params,sizeof(init_params),cudaMemcpyHostToDevice);
+  cudaMemcpy(d_kernel,init_params,iheight*oheight*sizeof(float),cudaMemcpyHostToDevice);
 }
 
 void FCLayer::forward(float * d_input, float * d_kernel, float * d_output)
