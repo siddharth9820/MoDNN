@@ -30,7 +30,7 @@ enum padding_type{
     }                                                        \
   }
 
-static const char *cublasGetErrorString(cublasStatus_t error);
+const char *cublasGetErrorString(cublasStatus_t error);
 
 #define checkCUBLAS(expression)                              \
   {                                                          \
@@ -65,45 +65,6 @@ namespace layers
 
   };
 
- class FCLayer : public Layer
- {
-  public:
-    cublasHandle_t handle;
-    FCLayer(cublasHandle_t cublas,int batch_size,int input_height,int output_height);
-    int get_output_shape_and_bytes(int shape[]);
-    void forward(float* d_input, float * d_kernel, float * d_output); //checked with numpy and working correctly
-    void backward(float *d_input, float* d_kernel,float *d_diffkernel,float *d_diffinput, float *d_diffoutput); //checked with numpy for parameter gradient
-    int allocate_internal_mem(float **d_kernel,float **d_diffkernel);
-    void populate_filter_params(float *d_kernel);
-    int get_input_shape_and_bytes(int shape[]);
-    int get_params_shape_and_bytes(int shape[]);
-
- };
- class Flatten : public Layer
- {
-  public:
-   Flatten(int batch_size,int input_height,int input_width,int input_channels);
-   int get_output_shape_and_bytes(int shape[]);
-   int get_input_shape_and_bytes(int shape[]);
- };
-
- class Softmax : public Layer
- {
-
-  public:
-    cudnnHandle_t handle;
-    cudnnTensorDescriptor_t input_descriptor;
-    cudnnTensorDescriptor_t output_descriptor;
-    cudnnTensorDescriptor_t diff_descriptor;
-
-
-    Softmax(cudnnHandle_t cudnn,int batch_size,int input_height);
-    int get_output_shape_and_bytes(int shape[]);
-    int get_input_shape_and_bytes(int shape[]);
-    void forward(float* d_input, float * d_output);
-    void backward(const int *label, float *diff, float * output);
-
- };
 }
 
 namespace network

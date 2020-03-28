@@ -5,7 +5,7 @@
 
 namespace layers{
 
-  class InputLayer : public Layer
+  class InputLayer : public layers::Layer
   {
     public:
       int num_classes;

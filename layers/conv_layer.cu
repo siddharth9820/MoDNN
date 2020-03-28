@@ -1,4 +1,5 @@
 #include "conv_layer.h"
+
 using namespace layers;
 
 ConvLayer::ConvLayer(cudnnHandle_t cudnn,

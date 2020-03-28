@@ -1,7 +1,10 @@
-#include "pooling_layer.h"
-#include "input_layer.h"
-#include "conv_layer.h"
- 
+#include "layers/pooling_layer.h"
+#include "layers/input_layer.h"
+#include "layers/conv_layer.h"
+#include "layers/softmax_layer.h"
+#include "layers/fc_layer.h"
+#include "layers/flatten_layer.h"
+
 using namespace network;
 using namespace layers;
 
