@@ -1,7 +1,7 @@
-#include "layers.h"
-
 #ifndef POOLING_LAYER_H_
 #define POOLING_LAYER_H_  
+
+#include "layers.h"
 
 namespace layers{
 
@@ -28,6 +28,7 @@ class PoolingLayer : public layers::Layer {
 		void forward(float alpha, float beta, float* d_input, float* d_output);
 		void backward(float* d_input, float* d_input_dx, float* d_output, float* d_output_dx);
 		int get_output_shape_and_bytes(int shape[]);
+		~PoolingLayer();
 	};
 }
 

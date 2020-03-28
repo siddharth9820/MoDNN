@@ -1,5 +1,6 @@
 #include "pooling_layer.h"
 #include "input_layer.h"
+#include "conv_layer.h"
  
 using namespace network;
 using namespace layers;

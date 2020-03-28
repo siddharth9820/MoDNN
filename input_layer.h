@@ -1,7 +1,7 @@
-#include "layers.h"
-
 #ifndef INPUT_LAYER_H_
 #define INPUT_LAYER_H_
+
+#include "layers.h"
 
 namespace layers{
 

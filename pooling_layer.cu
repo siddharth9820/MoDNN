@@ -96,3 +96,9 @@ int PoolingLayer::get_output_shape_and_bytes(int shape[]) {
     shape[3] = ochannels;
     return sizeof(float)*obatch_size*ochannels*oheight*owidth;
 }
+
+PoolingLayer::~PoolingLayer() {
+    checkCUDNN(cudnnDestroyTensorDescriptor(input_descriptor));
+	checkCUDNN(cudnnDestroyTensorDescriptor(output_descriptor));
+    checkCUDNN(cudnnDestroyPoolingDescriptor(pooling_descriptor));
+}
