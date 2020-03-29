@@ -26,7 +26,7 @@ class PoolingLayer : public layers::Layer {
 					cudnnPoolingMode_t mode
 				);
 		void forward(float alpha, float beta, float* d_input, float* d_output);
-		void backward(float* d_input, float* d_input_dx, float* d_output, float* d_output_dx);
+		void backward(float alpha, float beta, float* d_y, float* d_dy, float* d_x, float* d_dx);
 		int get_output_shape_and_bytes(int shape[]);
 		~PoolingLayer();
 	};

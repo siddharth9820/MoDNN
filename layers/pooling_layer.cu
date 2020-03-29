@@ -74,7 +74,6 @@ PoolingLayer::PoolingLayer(cudnnHandle_t* handle,
         /*image_height=*/oheight,
         /*image_width=*/owidth
     ));
-
 }
 
 void PoolingLayer::forward(float alpha, float beta, float* d_input, float* d_output) {
@@ -86,6 +85,22 @@ void PoolingLayer::forward(float alpha, float beta, float* d_input, float* d_out
         &beta,
         output_descriptor,
         d_output
+    ));
+}
+
+void PoolingLayer::backward(float alpha, float beta, float* d_y, float* d_dy, float* d_x, float* d_dx) {
+    checkCUDNN(cudnnPoolingBackward(*handle_, 
+        pooling_descriptor,
+        &alpha,
+        output_descriptor,
+        d_y,
+        output_descriptor,
+        d_dy,
+        input_descriptor,
+        d_x,
+        &beta,
+        input_descriptor,
+        d_dx
     ));
 }
 

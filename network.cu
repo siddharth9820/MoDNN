@@ -254,6 +254,10 @@ void seqNetwork::allocate_memory()
       layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
       cudaMalloc(&(layer_buffers[i]["output"]),bytes);
 
+      layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
+      cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
+      
+
       layer_objects.push_back(new_pooling);
     }
 
@@ -326,7 +330,7 @@ void seqNetwork::backward()
     else if(layer_type=="conv")
     {
       ConvLayer * layer_obj = (ConvLayer*)(layer_objects[i]);
-      //layer_obj -> forward(1.0,0.0,buffer_map["input"],buffer_map["params"],(void*)buffer_map["workspace"],buffer_map["output"]);
+      layer_obj -> backward(1.0,0.0,buffer_map["output"],buffer_map["doutput"],(void*)buffer_map["workspace"], buffer_map["params"], buffer_map["input"], buffer_map["dinput"], buffer_map["dparams"]);
     }
     else if(layer_type=="fc")
     {
@@ -340,7 +344,11 @@ void seqNetwork::backward()
       layer_obj -> backward((int*)layer_buffers[0]["labels"],buffer_map["dinput"],buffer_map["output"]);
       //gradients are stored in buffer_map["labels"]
     }
-
+    else if(layer_type == "maxpool" || layer_type == "avgpool")
+    {
+      PoolingLayer* layer_obj = (PoolingLayer*) (layer_objects[i]);
+      layer_obj->backward(1.0,0.0,buffer_map["output"], buffer_map["doutput"] ,buffer_map["input"], buffer_map["dinput"]);
+    }
   }
 }
 
