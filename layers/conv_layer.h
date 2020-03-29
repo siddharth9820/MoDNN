@@ -5,7 +5,7 @@
 
 namespace layers {
 
-  class ConvLayer : public Layer
+  class ConvLayer : public layers::Layer
   {
     public:
       cudnnHandle_t handle;
