@@ -202,6 +202,47 @@ void ConvLayer::forward(float alpha, float beta, float* d_input, float* d_kernel
                                        d_output));
   }
 
+void ConvLayer::backward(float alpha, 
+  float beta, 
+  float* d_y, 
+  float* d_dy, 
+  void* d_workspace, 
+  float* d_kernel,
+  float* d_x, 
+  float* d_dx, 
+  float* d_dkernel) {
+  checkCUDNN(cudnnConvolutionBackwardData(
+    handle,
+    &alpha,
+    kernel_descriptor,
+    d_kernel,
+    output_descriptor,
+    d_dy,
+    convolution_descriptor,
+    data_algo,
+    d_workspace,
+    backward_workspace_bytes,
+    &beta,
+    input_descriptor,
+    d_dx
+  ));
+  checkCUDNN(cudnnConvolutionBackwardFilter(
+    handle,
+    &alpha,
+    input_descriptor,
+    d_x,
+    output_descriptor,
+    d_dy,
+    convolution_descriptor,
+    filter_algo,
+    d_workspace,
+    backward_workspace_bytes,
+    &beta,
+    kernel_descriptor,
+    d_dkernel
+  ));
+}
+    
 int ConvLayer::allocate_internal_mem(float **d_kernel, void **d_workspace,float **d_diffkernel)
   {
       int param_size = sizeof(float)*ikernel_width*ikernel_height*ichannels*ochannels;
