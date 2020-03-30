@@ -148,6 +148,15 @@ ConvLayer::ConvLayer(cudnnHandle_t cudnn,
     //          << std::endl;
 }
 
+int ConvLayer::get_params_shape_and_bytes(int shape[])
+{
+  shape[0] = ochannels;
+  shape[1] = oheight;
+  shape[2] = owidth;
+  shape[3] = ichannels;
+
+  return ochannels*oheight*owidth*ichannels*sizeof(float);
+}
 
 int ConvLayer::get_output_shape_and_bytes(int shape[])
 {
@@ -202,15 +211,16 @@ void ConvLayer::forward(float alpha, float beta, float* d_input, float* d_kernel
                                        d_output));
   }
 
-void ConvLayer::backward(float alpha, 
-  float beta, 
-  float* d_y, 
-  float* d_dy, 
-  void* d_workspace, 
+void ConvLayer::backward(float alpha,
+  float beta,
+  float* d_y,
+  float* d_dy,
+  void* d_workspace,
   float* d_kernel,
-  float* d_x, 
-  float* d_dx, 
-  float* d_dkernel) {
+  float* d_x,
+  float* d_dx,
+  float* d_dkernel,
+  float lr) {
   checkCUDNN(cudnnConvolutionBackwardData(
     handle,
     &alpha,
@@ -241,8 +251,14 @@ void ConvLayer::backward(float alpha,
     kernel_descriptor,
     d_dkernel
   ));
+
+  int shape[4];
+  //update filter weights
+  this->get_params_shape_and_bytes(shape);
+  int num_elements = shape[0]*shape[1]*shape[2]*shape[3];
+  update<<<(num_elements/TILE_SIZE)+1,TILE_SIZE>>>(d_kernel,d_dkernel,lr,num_elements);
 }
-    
+
 int ConvLayer::allocate_internal_mem(float **d_kernel, void **d_workspace,float **d_diffkernel)
   {
       int param_size = sizeof(float)*ikernel_width*ikernel_height*ichannels*ochannels;
@@ -263,7 +279,7 @@ void ConvLayer::populate_filter_params(float *d_kernel)
 
   int dim1 = ikernel_width*ichannels;
   int dim2 = ikernel_height*dim1;
-  
+
   for(int ochannel = 0; ochannel < ochannels; ochannel++)
     for(int row=0;row<ikernel_height;row++)
       for(int col=0;col<ikernel_width;col++)
@@ -271,7 +287,7 @@ void ConvLayer::populate_filter_params(float *d_kernel)
           init_params[ochannel*dim2 + row*dim1 + col*ichannels + ichannel] = distribution(generator);
 
 
-  cudaMemcpy(d_kernel,init_params,ochannels*ikernel_height*ikernel_width*ichannels*sizeof(float),cudaMemcpyHostToDevice);
+  gpuErrchk(cudaMemcpy(d_kernel,init_params,ochannels*ikernel_height*ikernel_width*ichannels*sizeof(float),cudaMemcpyHostToDevice));
 
 }
 

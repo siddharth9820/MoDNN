@@ -20,8 +20,8 @@ int Softmax::get_output_shape_and_bytes(int shape[])
 {
   shape[0] = obatch_size;
   shape[1] = oheight;
-  shape[2] = -1;
-  shape[3] = -1;
+  shape[2] = 1;
+  shape[3] = 1;
 
   return obatch_size*oheight*sizeof(float);
 }
@@ -30,8 +30,8 @@ int Softmax::get_input_shape_and_bytes(int shape[])
 {
   shape[0] = obatch_size;
   shape[1] = oheight;
-  shape[2] = -1;
-  shape[3] = -1;
+  shape[2] = 1;
+  shape[3] = 1;
 
   return obatch_size*oheight*sizeof(float);
 }
