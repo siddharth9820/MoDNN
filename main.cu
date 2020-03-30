@@ -1,5 +1,6 @@
 #include "layers/layers.h"
 #include <fstream>
+#include <math.h>
 
 using namespace layers;
 using namespace network;
@@ -44,6 +45,24 @@ void print_output(float * layer,int shape[])
 
 }
 
+float categorical_cross_entropy_loss(float * softmax_dinput,int shape[])
+{
+  float temp,loss=0;
+  for(int i=0;i<shape[0];i++){
+    for(int j=0;j<shape[1];j++){
+        temp = softmax_dinput[i*shape[1]+j];
+        if(temp<=0)
+        {
+          temp = temp+1;
+          loss += -log(temp);
+          break;
+        }
+    }
+
+  }
+  return loss/shape[0];
+}
+
 
 int main(int argc, const char* argv[])
 {
@@ -54,7 +73,7 @@ int main(int argc, const char* argv[])
     std::ofstream outdata;
 
     std::vector<std::string> specs = {"input 32 28 28 1 8","flatten","fc 10","softmax"};
-    seqNetwork nn = seqNetwork(cudnn,cublas,specs);
+    seqNetwork nn = seqNetwork(cudnn,cublas,specs,LR);
     nn.print_network_info();
     nn.allocate_memory();
     int shape[4];
@@ -73,14 +92,16 @@ int main(int argc, const char* argv[])
 
     std::cout << "Forward Pass for the neural network" << std::endl;
 
-    float * output;
-    for(int i=0;i<10;i++)
+    float * output,loss;
+    for(int i=0;i<1000;i++)
     {
       nn.forward();
-      std::cout << "Offloading Ouput " <<std::endl;
-      output = nn.offload_buffer(nn.num_layers-1,"output",shape);
-      print_output(output,shape);
       nn.backward();
+      if(i%100==0){
+      output = nn.offload_buffer(nn.num_layers-1,"dinput",shape);
+      loss = categorical_cross_entropy_loss(output,shape);
+      std::cout << "Iteration number "<<i<<" CCE Loss :- "<<loss <<std::endl;
+      }
     }
 
 

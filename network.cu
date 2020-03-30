@@ -9,7 +9,7 @@
 using namespace network;
 using namespace layers;
 
-seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std::string> &specs)
+seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std::string> &specs,float lr)
 {
   /*
   Specs is a vector of strings specifying the Neural Network.
@@ -19,6 +19,7 @@ seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std
   num_layers = specs.size();
   handle = cudnn;
   blas_handle = cublas;
+  this->lr = lr;
   for(int i=0;i<num_layers;i++)
     {
       std::stringstream ss(specs[i]);
@@ -339,8 +340,7 @@ void seqNetwork::backward()
     else if(layer_type=="fc")
     {
       FCLayer * layer_obj = (FCLayer*)(layer_objects[i]);
-      //layer_obj -> forward(buffer_map["input"],buffer_map["params"],buffer_map["output"]);
-      layer_obj -> backward(buffer_map["input"], buffer_map["params"],buffer_map["dparams"],buffer_map["dinput"], buffer_map["doutput"]);
+      layer_obj -> backward(buffer_map["input"], buffer_map["params"],buffer_map["dparams"],buffer_map["dinput"], buffer_map["doutput"],lr);
     }
     else if(layer_type == "softmax")
     {
