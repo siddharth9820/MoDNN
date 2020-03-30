@@ -20,6 +20,14 @@ enum padding_type{
   VALID
 };
 
+#define USE_CUBLAS true
+#define TILE_SIZE  4
+#define BLOCK_SIZE 8
+#define MU 0
+#define SIGMA 0.1
+#define LR 0.001
+
+
 #define checkCUDNN(expression)                               \
   {                                                          \
     cudnnStatus_t status = (expression);                     \
@@ -45,12 +53,29 @@ const char *cublasGetErrorString(cublasStatus_t error);
   }
 
 
-#define MU 0
-#define SIGMA 0.1
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess)
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
 
 
 std::map<std::string,float*> init_buffer_map();
 __global__ void SoftmaxLossBackprop(const int *label, int num_labels, int batch_size, float *diff);
+__global__ void matrixMultiplyShared(float * A, float * B, float * C,
+                                    int numARows, int numAColumns,
+                                    int numBRows, int numBColumns,
+                                    int numCRows, int numCColumns);
+__global__ void transposeCoalesced(float *odata, const float *idata,int idata_rows,int idata_cols);
+__global__ void matrixMultiplyNaive(float * A, float * B, float * C,
+                                    int N,int K,int M);
+__global__ void transposeNaive(float *odata, const float *idata,int idata_rows,int idata_cols);
+__global__ void update(float * weights, float * grad,int N);
+
 int calc_bytes_from_shape(int shape[]);
 
 namespace layers

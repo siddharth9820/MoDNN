@@ -4,6 +4,7 @@
 #include "layers/softmax_layer.h"
 #include "layers/fc_layer.h"
 #include "layers/flatten_layer.h"
+#include "layers/layers.h"
 
 using namespace network;
 using namespace layers;
@@ -158,6 +159,8 @@ void seqNetwork::allocate_memory()
       layer_buffers[i]["doutput"] = layer_buffers[i]["dinput"];
 
       std::cout << "Addrs of flatten ::dout "<<layer_buffers[i]["doutput"]<<std::endl;
+      std::cout << "Addrs of flatten ::out "<<layer_buffers[i]["output"]<<std::endl;
+
     }
     else if(layer_type == "fc")
     {
@@ -182,6 +185,7 @@ void seqNetwork::allocate_memory()
       layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
 
       std::cout << "Addrs of fc ::din "<<layer_buffers[i]["dinput"]<<std::endl;
+      std::cout << "Addrs of fc :: in "<<layer_buffers[i]["input"]<<std::endl;
 
       new_fc -> allocate_internal_mem(&(layer_buffers[i]["params"]),&(layer_buffers[i]["dparams"]));
 
@@ -213,7 +217,7 @@ void seqNetwork::allocate_memory()
     }
     else if(layer_type == "maxpool" || layer_type == "avgpool") {
       this->get_output_shape(shape, i-1);
-      
+
       window_height = atoi(layer_info[i][1].c_str());
       window_width = atoi(layer_info[i][2].c_str());
       vertical_stride = atoi(layer_info[i][3].c_str());
@@ -236,8 +240,8 @@ void seqNetwork::allocate_memory()
 
       std::cout << "Setting up pooling layer - "<< batch_size <<" " << rows << " "<<columns <<" "<<channels << std::endl;
 
-      PoolingLayer* new_pooling = new PoolingLayer(&handle, 
-        window_height, 
+      PoolingLayer* new_pooling = new PoolingLayer(&handle,
+        window_height,
         window_width,
         vertical_stride,
         horizontal_stride,
@@ -348,7 +352,7 @@ float* seqNetwork::offload_buffer(int layer_number, std::string type,int shape[]
 {
   int bytes;
   std::string layer_type = layer_info[layer_number][0];
-  std::cout << "Offloading " << layer_type << std::endl;
+  //std::cout << "Offloading " << layer_type << std::endl;
   if(layer_type=="conv")
   {
     ConvLayer * layer_obj = (ConvLayer*)(layer_objects[layer_number]);
@@ -407,8 +411,8 @@ float* seqNetwork::offload_buffer(int layer_number, std::string type,int shape[]
     layer_offloaded_buffers[layer_number][type] = (float*)malloc(bytes);
 
   }
-  cudaMemcpy(layer_offloaded_buffers[layer_number][type],layer_buffers[layer_number][type],bytes,
-    cudaMemcpyDeviceToHost);
+  gpuErrchk(cudaMemcpy(layer_offloaded_buffers[layer_number][type],layer_buffers[layer_number][type],bytes,
+    cudaMemcpyDeviceToHost));
 
   return layer_offloaded_buffers[layer_number][type];
 
@@ -462,8 +466,8 @@ void seqNetwork::prefetch_buffer(int layer_number,std::string type)
   if(layer_buffers[layer_number][type] == nullptr)
     cudaMalloc(&layer_buffers[layer_number][type],bytes);
 
-  cudaMemcpy(layer_buffers[layer_number][type],layer_offloaded_buffers[layer_number][type],bytes,
-    cudaMemcpyHostToDevice);
+  gpuErrchk(cudaMemcpy(layer_buffers[layer_number][type],layer_offloaded_buffers[layer_number][type],bytes,
+    cudaMemcpyHostToDevice));
 
 
 
