@@ -44,8 +44,7 @@ int calc_bytes_from_shape(int shape[])
   int bytes = 1;
   for(int i=0;i<4;i++)
   {
-    if(shape[i]==-1)break;
-    else bytes*=shape[i];
+     bytes*=shape[i];
   }
   return bytes;
 }

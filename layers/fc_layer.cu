@@ -15,8 +15,8 @@ int FCLayer::get_output_shape_and_bytes(int shape[])
 {
   shape[0] = obatch_size;
   shape[1] = oheight;
-  shape[2] = -1;
-  shape[3] = -1;
+  shape[2] = 1;
+  shape[3] = 1;
 
   return obatch_size*oheight*sizeof(float);
 }
@@ -25,8 +25,8 @@ int FCLayer::get_input_shape_and_bytes(int shape[])
 {
   shape[0] = obatch_size;
   shape[1] = iheight;
-  shape[2] = -1;
-  shape[3] = -1;
+  shape[2] = 1;
+  shape[3] = 1;
 
   return obatch_size*iheight*sizeof(float);
 }
@@ -58,7 +58,7 @@ void FCLayer::populate_filter_params(float *d_kernel)
     for(int j=0;j<oheight;j++)
       init_params[i*oheight+j] = distribution(generator);
 
-  cudaMemcpy(d_kernel,init_params,iheight*oheight*sizeof(float),cudaMemcpyHostToDevice);
+  gpuErrchk(cudaMemcpy(d_kernel,init_params,iheight*oheight*sizeof(float),cudaMemcpyHostToDevice));
 }
 
 void FCLayer::forward(float * d_input, float * d_kernel, float * d_output)

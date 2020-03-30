@@ -33,25 +33,27 @@ namespace layers {
                     padding_type pad
              );
     int get_input_shape_and_bytes(int shape[]);
+    int get_params_shape_and_bytes(int shape[]);
     size_t get_forward_workspace_bytes();
     size_t get_backward_workspace_bytes();
     size_t get_total_workspace_size();
-    void forward(float alpha, 
-      float beta, 
-      float* d_input, 
-      float* d_kernel, 
-      void* d_workspace, 
+    void forward(float alpha,
+      float beta,
+      float* d_input,
+      float* d_kernel,
+      void* d_workspace,
       float * d_output
     );
-    void backward(float alpha, 
-      float beta, 
-      float* d_y, 
-      float* d_dy, 
-      void* d_workspace, 
+    void backward(float alpha,
+      float beta,
+      float* d_y,
+      float* d_dy,
+      void* d_workspace,
       float* d_kernel,
-      float* d_x,  
-      float* d_dx, 
-      float* d_dkernel
+      float* d_x,
+      float* d_dx,
+      float* d_dkernel,
+      float lr
     );
     int allocate_internal_mem(float **d_kernel, void **d_workspace,float **d_diffkernel);
     void populate_filter_params(float *d_kernel);

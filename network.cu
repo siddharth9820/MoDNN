@@ -5,6 +5,7 @@
 #include "layers/fc_layer.h"
 #include "layers/flatten_layer.h"
 #include "layers/layers.h"
+#include "layers/relu_layer.h"
 
 using namespace network;
 using namespace layers;
@@ -216,6 +217,27 @@ void seqNetwork::allocate_memory()
 
 
     }
+    else if(layer_type == "relu")
+    {
+      this->get_output_shape(shape,i-1);
+      batch_size = shape[0];
+      channels = shape[1];
+      rows = shape[2];
+      columns = shape[3];
+
+      relu * new_relu =  new relu(handle,batch_size,channels,rows,columns);
+      bytes = new_relu->get_output_shape_and_bytes(shape);
+
+      layer_objects.push_back(new_relu);
+
+      cudaMalloc(&(layer_buffers[i]["output"]),bytes);
+      cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
+
+      layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
+      layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
+
+
+    }
     else if(layer_type == "maxpool" || layer_type == "avgpool") {
       this->get_output_shape(shape, i-1);
 
@@ -261,7 +283,7 @@ void seqNetwork::allocate_memory()
 
       layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
       cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
-      
+
 
       layer_objects.push_back(new_pooling);
     }
@@ -317,13 +339,18 @@ void seqNetwork::forward()
       PoolingLayer* layer_obj = (PoolingLayer*) (layer_objects[i]);
       layer_obj->forward(1.0,0.0,buffer_map["input"], buffer_map["output"]);
     }
+    else if(layer_type=="relu")
+    {
+      relu * layer_obj = (relu*)(layer_objects[i]);
+      layer_obj -> forward(buffer_map["input"],buffer_map["output"]);
+    }
 
   }
 
 
 }
 
-void seqNetwork::backward()
+ void seqNetwork::backward()
 {
 
   for(int i=num_layers-1;i>=0;i--)
@@ -335,7 +362,7 @@ void seqNetwork::backward()
     else if(layer_type=="conv")
     {
       ConvLayer * layer_obj = (ConvLayer*)(layer_objects[i]);
-      layer_obj -> backward(1.0,0.0,buffer_map["output"],buffer_map["doutput"],(void*)buffer_map["workspace"], buffer_map["params"], buffer_map["input"], buffer_map["dinput"], buffer_map["dparams"]);
+      layer_obj -> backward(1.0,0.0,buffer_map["output"],buffer_map["doutput"],(void*)buffer_map["workspace"], buffer_map["params"], buffer_map["input"], buffer_map["dinput"], buffer_map["dparams"],lr);
     }
     else if(layer_type=="fc")
     {
@@ -352,6 +379,11 @@ void seqNetwork::backward()
     {
       PoolingLayer* layer_obj = (PoolingLayer*) (layer_objects[i]);
       layer_obj->backward(1.0,0.0,buffer_map["output"], buffer_map["doutput"] ,buffer_map["input"], buffer_map["dinput"]);
+    }
+    else if(layer_type=="relu")
+    {
+      relu * layer_obj = (relu*)(layer_objects[i]);
+      layer_obj -> backward(buffer_map["input"],buffer_map["output"],buffer_map["dinput"],buffer_map["doutput"]);
     }
   }
 }
@@ -412,6 +444,14 @@ float* seqNetwork::offload_buffer(int layer_number, std::string type,int shape[]
     PoolingLayer * layer_obj = (PoolingLayer*)(layer_objects[layer_number]);
     if(type=="output")
       bytes = layer_obj->get_output_shape_and_bytes(shape);
+  }
+  else if(layer_type == "relu")
+  {
+    relu * layer_obj = (relu*)(layer_objects[layer_number]);
+    if(type == "output" || type == "doutput")
+      bytes = layer_obj->get_output_shape_and_bytes(shape);
+    else if(type=="input" || type == "dinput")
+      bytes = layer_obj->get_input_shape_and_bytes(shape);
   }
 
   if(layer_offloaded_buffers[layer_number][type] == nullptr){
