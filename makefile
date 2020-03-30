@@ -12,10 +12,10 @@ opencv_flags = -lopencv_imgcodecs -lopencv_imgproc -lopencv_core
 all: main.o network.o $(layers) $(kernels)
 	$(cc) $(flags) -o test main.o network.o $(layers) $(kernels) $(nvidia_flags) $(opencv_flags)
 
-main.o: $(home)/main.cu $(layer_headers)
+main.o: $(home)/main.cu $(home)/layers/layers.h
 	$(cc) -c $(flags) $(home)/main.cu
 
-network.o:  $(home)/network.cu $(home)/layers/layers.h
+network.o:  $(home)/network.cu $(layer_headers)
 	$(cc) -c $(flags) $(home)/network.cu
 
 $(layers): %.o: $(home)/layers/%.cu $(home)/layers/%.h
@@ -23,7 +23,6 @@ $(layers): %.o: $(home)/layers/%.cu $(home)/layers/%.h
 
 $(kernels): %.o: $(home)/kernels/%.cu $(home)/layers/layers.h
 	$(cc) -c $(flags) $< -o $@
-
 
 clean:
 	rm $(layers) $(kernels) test
