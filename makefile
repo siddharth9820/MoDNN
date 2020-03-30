@@ -17,7 +17,7 @@ main.o: $(home)/main.cu $(home)/layers/layers.h
 network.o:  $(home)/network.cu $(home)/layers/layers.h
 	$(cc) -c $(flags) $(home)/network.cu
 
-$(layers): %.o: $(home)/layers/%.cu $(home)/layers/layers.h
+$(layers): %.o: $(home)/layers/%.cu $(home)/layers/%.h
 	$(cc) -c $(flags) $< -o $@
 
 $(kernels): %.o: $(home)/kernels/%.cu $(home)/layers/layers.h

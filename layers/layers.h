@@ -20,12 +20,12 @@ enum padding_type{
   VALID
 };
 
-#define USE_CUBLAS true
-#define TILE_SIZE  4
-#define BLOCK_SIZE 8
+
 #define MU 0
 #define SIGMA 0.1
-#define LR 0.001
+#define LR 0.01
+#define TILE_SIZE  32
+#define BLOCK_SIZE 8
 
 
 #define checkCUDNN(expression)                               \
@@ -43,8 +43,6 @@ const char *cublasGetErrorString(cublasStatus_t error);
 #define checkCUBLAS(expression)                              \
   {                                                          \
     cublasStatus_t status = (expression);                     \
-    std::cerr << "Doing a CUBLAS OP" <<" ";                   \
-    std::cerr << status <<" "<<CUBLAS_STATUS_SUCCESS<< std::endl;\
     if (status != CUBLAS_STATUS_SUCCESS) {                    \
       std::cerr << "Error on line " << __LINE__ << ": "      \
                 << cublasGetErrorString(status) << std::endl; \
@@ -74,7 +72,7 @@ __global__ void transposeCoalesced(float *odata, const float *idata,int idata_ro
 __global__ void matrixMultiplyNaive(float * A, float * B, float * C,
                                     int N,int K,int M);
 __global__ void transposeNaive(float *odata, const float *idata,int idata_rows,int idata_cols);
-__global__ void update(float * weights, float * grad,int N);
+__global__ void update(float * weights, float * grad,float lr,int N);
 
 int calc_bytes_from_shape(int shape[]);
 
@@ -98,6 +96,7 @@ namespace network
   {
     public:
       int num_layers;
+      float lr;
       std::vector<std::vector<std::string > > layer_info;
       std::vector<std::map<std::string,float*> > layer_buffers;
       std::vector<std::map<std::string,float*> > layer_offloaded_buffers;
@@ -108,7 +107,7 @@ namespace network
       cublasHandle_t blas_handle;
 
 
-      seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std::string> &specs);
+      seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std::string> &specs, float lr);
       void print_network_info();
       void allocate_memory();
       void get_output_shape(int shape[], int i);

@@ -97,7 +97,7 @@ void FCLayer::forward(float * d_input, float * d_kernel, float * d_output)
 
 }
 
-void FCLayer::backward(float *d_input, float* d_kernel,float *d_diffkernel,float *d_diffinput, float *d_diffoutput)
+void FCLayer::backward(float *d_input, float* d_kernel,float *d_diffkernel,float *d_diffinput, float *d_diffoutput, float lr)
 {
   float alpha = 1.0,beta = 0.0;
 
@@ -171,6 +171,7 @@ void FCLayer::backward(float *d_input, float* d_kernel,float *d_diffkernel,float
     int shape[4];
     this->get_params_shape_and_bytes(shape);
     int num_ele = shape[0]*shape[1];
-    update<<<(num_ele/TILE_SIZE)+1,(TILE_SIZE)>>>(d_kernel,d_diffkernel,LR,num_ele);
+    //std::cout <<"fc backward "<<TILE_SIZE <<" "<<lr<<std::endl;
+    update<<<(num_ele/TILE_SIZE)+1,(TILE_SIZE)>>>(d_kernel,d_diffkernel,lr,num_ele);
 
 }
