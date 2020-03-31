@@ -38,13 +38,74 @@ class vmm{
 			    head->isFree = true;
 		    }
 		}
+
+		void defragmentMemSimple(){
+			// just joins contiguous free blocks
+			struct memoryNode* iterator = head;
+			struct memoryNode* prev = NULL;
+			struct memoryNode* temp;
+			
+			while(iterator){
+				if(iterator->isFree and iterator->next and iterator->next->isFree){
+					iterator->size+=iterator->next->size;
+					temp = iterator->next;
+					iterator->next = iterator->next->next;
+					delete(temp);
+				}else{
+					iterator = iterator->next;
+				}
+			}
+		}
+
+		void defragmentMem(){
+
+			cout<<" Defragmentation required "<<endl;
+			
+			struct memoryNode* prev = NULL;
+			struct memoryNode* temp;
+			struct memoryNode* iterator = head;
+			
+			while(iterator){
+				if(iterator->next and iterator->isFree and !iterator->next->isFree){
+					
+					memmove(iterator->startAddrCuda,iterator->next->startAddrCuda,iterator->next->size);
+					unsigned long long int total_size = iterator->size+iterator->next->size;
+					iterator->size = iterator->next->size;
+					iterator->next->size = total_size-iterator->size;
+
+					iterator->accessPointer = iterator->next->accessPointer;
+					*(iterator->accessPointer) = iterator->startAddrCuda;
+
+					iterator->isFree = false;
+					iterator->next->isFree = true;
+					iterator->next->startAddrCuda = (float*)((unsigned long long int)iterator->startAddrCuda+iterator->size);
+					iterator->next->accessPointer = NULL;
+					iterator = iterator->next;
+
+				}else if(iterator->next and iterator->isFree and iterator->next->isFree){
+					iterator->size+=iterator->next->size;
+					temp = iterator->next;
+					iterator->next = iterator->next->next;
+					delete(temp);
+				}else{
+					iterator = iterator->next;
+				}
+			}
+			cout<<" Defragmentation complete "<<endl;
+			printNodes();
+		}
+
 		float* allocate(float** ptr,int bytes){
 			if(bytes>freeSize){
 				cout<<"Requested memory more than free memory"<<endl;
 				return NULL;
 			}
 			*ptr = NULL;
+			
+			defragmentMemSimple();
+			
 			struct memoryNode* iterator = head;
+			
 			while(iterator){
 				if(iterator->isFree){
 					if(iterator->size == bytes){
@@ -74,6 +135,39 @@ class vmm{
 				iterator = iterator->next;
 			}
 			
+			defragmentMem();
+			
+			iterator = head;
+			while(iterator){
+				if(iterator->isFree){
+					if(iterator->size == bytes){
+						*ptr = iterator->startAddrCuda;
+						iterator->accessPointer = ptr;
+						iterator->isFree = false;
+						this->freeSize-=bytes;
+						return *ptr;
+					}else if(iterator->size>bytes){
+						*ptr=iterator->startAddrCuda;
+						iterator->accessPointer= &*ptr;
+						iterator->isFree = false;
+						struct memoryNode* temp = new struct memoryNode;
+						
+						temp->isFree = true;
+						temp->accessPointer = NULL;
+						temp->startAddrCuda = (float*)((unsigned long long int)iterator->startAddrCuda+bytes);
+						temp->size = iterator->size-bytes;
+						
+						iterator->size = bytes;
+						temp->next = iterator->next;
+						iterator->next = temp;
+						this->freeSize-=bytes;
+						return *ptr;
+					}
+				}
+				iterator = iterator->next;
+			}
+			cout<<" Unable to allocate memory : Reason unknown"<<endl;
+			return NULL;
 		}
 
 		void deleteMem(float* ptr){
@@ -113,8 +207,9 @@ int main(){
 	myMemory->printNodes();
 	p4 = myMemory->allocate(&p4,2);
 	myMemory->deleteMem(p2);
+	myMemory->deleteMem(p4);
 	myMemory->printNodes();
-	p5 = myMemory->allocate(&p5,2);
+	p5 = myMemory->allocate(&p5,4);
 	// cout<<p1<<"\t"<<p5<<"\t"<<*(myMemory->head->accessPointer)<<endl;
 	// *(myMemory->head->accessPointer) = p5;
 	// *(myMemory->head->next->accessPointer) = p5;
