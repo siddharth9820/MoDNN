@@ -224,4 +224,23 @@ int main(){
 	myMemory1->deleteMem(p3);
 	p5 = myMemory1->allocate(&p5,4);
 	myMemory1->printNodes();
+
+	vmm* myMemory2 = new vmm(8*sizeof(float));
+	
+	p1 = myMemory2->allocate(&p1,2*sizeof(float));
+	p2 = myMemory2->allocate(&p2,2*sizeof(float));
+	p3 = myMemory2->allocate(&p3,2*sizeof(float));
+	p4 = myMemory2->allocate(&p4,2*sizeof(float));
+	
+	p1[0] = 1;
+	p2[0] = 2;
+	p3[0] = 3;
+	p4[0] = 4;
+	
+	myMemory2->deleteMem(p2);
+	myMemory2->deleteMem(p4);
+	p5 = myMemory2->allocate(&p5,4*sizeof(float));
+	myMemory2->printNodes();
+
+	cout<<"p1: "<<p1[0]<<"\tp3: "<<p3[0]<<endl;
 }
