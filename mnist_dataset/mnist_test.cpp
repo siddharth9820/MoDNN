@@ -13,7 +13,7 @@ int main() {
 
     int input_dim = dataset->getInputDim();
     int dataset_size = dataset->getDatasetSize();
-    int label_dim = dataset->getLabelDim();
+    int label_dim = 1;
     int rows = sqrt(input_dim);
 
     cout << "input dim: " << input_dim << endl;
@@ -24,9 +24,23 @@ int main() {
     float* label = (float*) malloc(2*label_dim*sizeof(float));
     float *image1, *label1;
 
-    dataset->get_item_range(0,2,image, label);
-    image1 = image+input_dim;
-    label1 = label+label_dim;
+    // dataset->get_item_range(0,2,image, label);
+    // image1 = image+input_dim;
+    // label1 = label+label_dim;
+
+    // cout << "\nImage";
+    // for(int i = 0; i < input_dim; i++) {
+    //     if(i%rows==0)
+    //         cout << endl;
+    //     cout << image1[i] << " ";
+    // }
+
+    // cout << "\nLabel\n";
+    // for(int i =0; i < label_dim; i++) {
+    //    cout << label1[i] << " ";
+    // }
+
+    dataloader->get_next_batch(&image1, &label1);
 
     cout << "\nImage";
     for(int i = 0; i < input_dim; i++) {
@@ -40,18 +54,18 @@ int main() {
        cout << label1[i] << " ";
     }
 
-    dataloader->get_next_batch(image, label);
+    dataloader->get_next_batch(&image1, &label1);
 
     cout << "\nImage";
     for(int i = 0; i < input_dim; i++) {
         if(i%rows==0)
             cout << endl;
-        cout << image[i] << " ";
+        cout << image1[i] << " ";
     }
 
     cout << "\nLabel\n";
     for(int i =0; i < label_dim; i++) {
-       cout << label[i] << " ";
+       cout << label1[i] << " ";
     }
 
 

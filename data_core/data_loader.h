@@ -9,10 +9,13 @@ class DataLoader {
         unsigned index_;
         unsigned max_index_;
         Dataset* dataset_;
+        float* data_buffer_;
+        float* label_buffer_;
     public:
         DataLoader(Dataset* dataset, unsigned batch_size);
-        unsigned get_next_batch(float* data, float* labels); // Returns the batch size
+        unsigned get_next_batch(float** data, float** labels); // Returns the batch size
         unsigned getBatchSize();
+        ~DataLoader();
 };
 
 #endif

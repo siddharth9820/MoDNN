@@ -14,7 +14,7 @@ MNIST::MNIST(char* images_filename, char* labels_filename, bool shuffle) {
     if (shuffle)
         seed = std::chrono::system_clock::now().time_since_epoch().count(); 
 
-    label_size_ = 10;
+    label_size_ = 1;
     parse_images_file(images_filename);
     parse_labels_file(labels_filename);
 
@@ -37,7 +37,6 @@ void MNIST::parse_images_file(char* images_file) {
     rows = reverseBits(*((unsigned int*) data));
     fd.read(data, sizeof(unsigned));
     cols = reverseBits(*((unsigned int*) data));
-    std::cout << "magic number: " << magic_number << "dataset_size: " << dataset_size_ << " rows "<< rows << " cols " << cols <<  std::endl;
     input_size_ = rows*cols;
     images.resize(dataset_size_);
     data[0] = 0;
@@ -67,9 +66,8 @@ void MNIST::parse_labels_file(char* label_file) {
 
     labels.resize(dataset_size_);
     while(!fd.eof()) {
-        labels[i] = std::vector<float>(label_size_, 0);
         fd.read(&value, 1);
-        labels[i][unsigned(value)] = 1;
+        labels[i] = int(value);
         i++;
     }
     fd.close();
@@ -80,7 +78,7 @@ size_t MNIST::getInputDim() {
 }
 
 size_t MNIST::getLabelDim() {
-    return label_size_;
+    return 10;
 }
 
 size_t MNIST::getDatasetSize() {
@@ -89,12 +87,12 @@ size_t MNIST::getDatasetSize() {
 
 void MNIST::get_item(int index, float* data, float* label) {
     memcpy(data, images[index].data(), sizeof(float)*input_size_);
-    memcpy(label, labels[index].data(), sizeof(float)*label_size_);
+    memcpy(label, &labels[index], sizeof(float)*label_size_);
 }
 
 void MNIST::get_item_range(int start, int end, float* data_batch, float* label_batch) {
     for (int i = start; i < end; i++){
         memcpy(data_batch+(i-start)*input_size_, images[i].data(), sizeof(float)*input_size_);
-        memcpy(label_batch+(i-start)*label_size_, labels[i].data(), sizeof(float)*label_size_);
+        memcpy(label_batch+(i-start)*label_size_, &labels[i], sizeof(float)*label_size_);
     }
 }

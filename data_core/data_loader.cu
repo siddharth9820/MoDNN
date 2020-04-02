@@ -5,6 +5,8 @@ DataLoader::DataLoader(Dataset* dataset, unsigned batch_size) {
     index_ = 0;
     max_index_ = dataset->getDatasetSize();
     dataset_ = dataset;
+    data_buffer_ = (float*) malloc(batch_size*sizeof(float)*dataset->getInputDim());
+    label_buffer_ = (float*) malloc(batch_size*sizeof(float)*dataset->getLabelDim());
 }
 
 unsigned DataLoader::getBatchSize() {
@@ -12,9 +14,16 @@ unsigned DataLoader::getBatchSize() {
 }
 
 // TODO : VMM integration
-unsigned DataLoader::get_next_batch(float* data, float* labels) {
+unsigned DataLoader::get_next_batch(float** data, float** labels) {
+    *data = data_buffer_;
+    *labels = label_buffer_;
     unsigned end = (index_+batch_size_ < max_index_) ? (index_+batch_size_) : (max_index_);
-    dataset_->get_item_range(index_, end, data, labels);
+    dataset_->get_item_range(index_, end, *data, *labels);
     index_ += end-index_; 
     return end-index_;
+}
+
+DataLoader::~DataLoader() {
+    free(data_buffer_);
+    free(label_buffer_);
 }
