@@ -52,6 +52,11 @@ void InputLayer::randomly_populate(float *data,float * labels)
 
   }
 
-  cudaMemcpy((void *)(labels),init_labels,sizeof(init_labels),cudaMemcpyHostToDevice);
+  cudaMemcpy((void *)(labels),init_labels,obatch_size*sizeof(int),cudaMemcpyHostToDevice);
 
+}
+
+void InputLayer::update_batch(float* data, float* labels, float* data_buffer, float* labels_buffer) {
+  cudaMemcpy(data_buffer,data, obatch_size *oheight*owidth*ochannels*sizeof(float),cudaMemcpyHostToDevice);
+  cudaMemcpy((void *)(labels_buffer),labels,obatch_size*sizeof(int),cudaMemcpyHostToDevice);
 }

@@ -6,7 +6,7 @@ DataLoader::DataLoader(Dataset* dataset, unsigned batch_size) {
     max_index_ = dataset->getDatasetSize();
     dataset_ = dataset;
     data_buffer_ = (float*) malloc(batch_size*sizeof(float)*dataset->getInputDim());
-    label_buffer_ = (float*) malloc(batch_size*sizeof(float)*dataset->getLabelDim());
+    label_buffer_ = (float*) malloc(batch_size*sizeof(float)*dataset->getLabelDim()); // NO need to multiply with label dim for mnist
 }
 
 unsigned DataLoader::getBatchSize() {

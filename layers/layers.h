@@ -112,6 +112,7 @@ namespace network
       void allocate_memory();
       void get_output_shape(int shape[], int i);
       void randomise_batch(); //randomise input to the neural network
+      void update_batch(float* data, int* labels);
       void enqueue_batch(float * batch);
       void randomise_params();
       void forward();

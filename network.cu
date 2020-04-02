@@ -296,6 +296,11 @@ void seqNetwork::randomise_batch()
   ((InputLayer*)layer_objects[0])->randomly_populate(layer_buffers[0]["output"],layer_buffers[0]["labels"]);
 }
 
+void seqNetwork::update_batch(float* data, int* labels)
+{
+  ((InputLayer*)layer_objects[0])->update_batch(data, (float*)labels,layer_buffers[0]["output"],layer_buffers[0]["labels"]);
+}
+
 void seqNetwork::randomise_params()
 {
   for(int i=0;i<num_layers;i++)
