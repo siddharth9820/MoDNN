@@ -15,6 +15,7 @@ class DataLoader {
         DataLoader(Dataset* dataset, unsigned batch_size);
         unsigned get_next_batch(float** data, float** labels); // Returns the batch size
         unsigned getBatchSize();
+        void reset();
         ~DataLoader();
 };
 

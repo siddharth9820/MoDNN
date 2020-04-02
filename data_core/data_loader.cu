@@ -22,7 +22,9 @@ unsigned DataLoader::get_next_batch(float** data, float** labels) {
     index_ += end-index_; 
     return end-index_;
 }
-
+void DataLoader::reset() {
+    index_=0;
+}
 DataLoader::~DataLoader() {
     free(data_buffer_);
     free(label_buffer_);

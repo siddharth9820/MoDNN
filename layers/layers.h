@@ -23,7 +23,7 @@ enum padding_type{
 
 #define MU 0
 #define SIGMA 0.1
-#define LR 0.01
+#define LR 0.0001
 #define TILE_SIZE  32
 #define BLOCK_SIZE 8
 

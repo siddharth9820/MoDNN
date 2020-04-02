@@ -46,7 +46,7 @@ void MNIST::parse_images_file(char* images_file) {
         images[i].resize(input_size_);
         for (int j = 0; j < input_size_; j++) {
             fd.read(&data[3], 1);
-            images[i][j] = reverseBits(*((unsigned int*) data));
+            images[i][j] = reverseBits(*((unsigned int*) data))/255.0;
         }
         i++;
     }
