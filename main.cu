@@ -62,12 +62,14 @@ float categorical_cross_entropy_loss(float * softmax_dinput,int shape[])
     }
 
   }
-  return loss/shape[0];
+  return loss;
 }
 
 
-void label_batch_converter_mnist(float* batch, int* batch_target, unsigned batch_size) {
-  for (int i = 0; i < batch_size; i++) {
+void label_batch_converter_mnist(float* batch, int* batch_target, unsigned batch_size)
+{
+  for (int i = 0; i < batch_size; i++)
+  {
     batch_target[i] = int(batch[i]);
   }
 }
@@ -80,18 +82,34 @@ int main(int argc, const char* argv[])
     cublasCreate(&cublas);
     std::ofstream outdata;
 
-    char* images_file = "mnist_dataset/data/train-images.idx3-ubyte";
-    char* label_file = "mnist_dataset/data/train-labels.idx1-ubyte";
+    //std::cout << sizeof(unsigned) << " " << sizeof(int) << std::endl;
+    //return 0;
+
+    std::string images_file_str = "/content/src/mnist_dataset/data/train-images-idx3-ubyte";
+    std::string label_file_str = "/content/src/mnist_dataset/data/train-labels-idx1-ubyte";
+
+
+
+    char * images_file = (char*)images_file_str.c_str();
+    char * label_file = (char*)label_file_str.c_str();
+
+    std::cout << images_file << " "<<label_file << std::endl;
+
     float* data_batch, *label_batch;
     unsigned batch_size = 20,rows;
+
+    std::cout << "Creating Dataset" << std::endl;
     Dataset* dataset= new MNIST(images_file, label_file, true);
+
+
+    std::cout << "Creating DataLoader" << std::endl;
     DataLoader* dataloader = new DataLoader(dataset, batch_size);
 
     rows = sqrt(dataset->getInputDim());
     std::string input_spec = "input "  + std::to_string(batch_size)+ " " + std::to_string(rows) +" "+std::to_string(rows)+ " " + "1 " +std::to_string(dataset->getLabelDim());
     std::cout << input_spec << std::endl;
     std::vector<std::string> specs = {input_spec,"conv 3 3 3","relu","maxpool 2 2 2 2","flatten","fc 50","relu","fc "+std::to_string(dataset->getLabelDim()),"softmax"};
-    
+
     int* label_batch_integer = (int*)malloc(sizeof(int)*batch_size);
     seqNetwork nn = seqNetwork(cudnn,cublas,specs,LR);
     nn.print_network_info();
@@ -104,8 +122,6 @@ int main(int argc, const char* argv[])
       std::cout << shape[i] <<" "<<" ";
     std::cout<<std::endl;
 
-    // std::cout << "Randomising input to the neural network" << std::endl;
-    // nn.randomise_batch();
 
     std::cout << "Randomising Parameters of the neural network" << std::endl;
     nn.randomise_params();
@@ -113,33 +129,51 @@ int main(int argc, const char* argv[])
     std::cout << "Forward Pass for the neural network" << std::endl;
 
     float * output,loss;
-    
-    int epochs=3;
-    for(int j=0;j<epochs;j++){
-    for(int i=0;i<dataset->getDatasetSize();i++)
-    {
-      dataloader->get_next_batch(&data_batch, &label_batch);
-      label_batch_converter_mnist(label_batch, label_batch_integer, batch_size);
-      nn.update_batch(data_batch, label_batch_integer);
-      nn.forward();
-      nn.backward();
-      if(i%10000==0){
-      output = nn.offload_buffer(nn.num_layers-1,"dinput",shape);
-      loss = categorical_cross_entropy_loss(output,shape);
-      std::cout << "Iteration number "<<i<<" CCE Loss :- "<<loss <<std::endl;
+
+    int epochs=50;
+    int num_iters_in_epoch =  dataset->getDatasetSize()/batch_size;
+    bool rem = false;
+
+
+    if(dataset->getDatasetSize()%batch_size!=0){
+      num_iters_in_epoch+=1;
+      rem = true;
       }
+    if(rem)
+      std::cout << "Ignoring last batch " << std::endl;
+
+    std::cout << "Number of iterations in an epoch " << num_iters_in_epoch << std::endl;
+    for(int j=0;j<epochs;j++)
+    {
+      loss = 0;
+      for(int i=0;i<num_iters_in_epoch;i++)
+      {
+        if(rem && i==num_iters_in_epoch-1)
+          break;
+
+        dataloader->get_next_batch(&data_batch, &label_batch);
+        label_batch_converter_mnist(label_batch, label_batch_integer, batch_size);
+        nn.update_batch(data_batch, label_batch_integer);
+        nn.forward();
+        nn.backward();
+
+        if(j%10==0)
+        {
+          output = nn.offload_buffer(nn.num_layers-1,"dinput",shape);
+          loss += categorical_cross_entropy_loss(output,shape);
+        }
+
+      }
+
+      if(j%10==0)
+      {
+        loss = loss/(float)(dataset->getDatasetSize());
+        std::cout << "Epoch number "<<j+1<< " : " << "Loss :- " << loss <<std::endl;
+      }
+      dataloader->reset();
+      dataset->shuffle();
     }
-    dataloader->reset();
-    }
-    //test for relu - passed
-    // nn.forward();
-    // output = nn.offload_buffer(3,"output",shape);
-    // print_output(output,shape);
-    // nn.backward();
-    // output = nn.offload_buffer(3,"doutput",shape);
-    // print_output(output,shape);
-    // output = nn.offload_buffer(3,"dinput",shape);
-    // print_output(output,shape);
+
     return 0;
 
 }

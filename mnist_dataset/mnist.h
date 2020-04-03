@@ -10,6 +10,7 @@ class MNIST : public Dataset {
         std::vector<float> labels;
         void parse_labels_file(char* labels_file);
         void parse_images_file(char* images_file);
+        void shuffle();
         unsigned seed;
     public:
         MNIST(char* images_file, char* labels_file, bool shuffle=false);

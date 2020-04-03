@@ -14,6 +14,7 @@ class Dataset{
         virtual size_t getDatasetSize() = 0;
         virtual void get_item(int index, float* input, float* output) = 0;
         virtual void get_item_range(int start, int end, float* input, float* output) = 0;
+        virtual void shuffle()=0;
 };
 
 #endif
