@@ -7,7 +7,7 @@
 class MNIST : public Dataset {
     private:
         std::vector<std::vector<float> > images;
-        std::vector<std::vector<float> > labels;
+        std::vector<float> labels;
         void parse_labels_file(char* labels_file);
         void parse_images_file(char* images_file);
         unsigned seed;

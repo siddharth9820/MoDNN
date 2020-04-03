@@ -23,7 +23,7 @@ enum padding_type{
 
 #define MU 0
 #define SIGMA 0.1
-#define LR 0.01
+#define LR 0.0001
 #define TILE_SIZE  32
 #define BLOCK_SIZE 8
 
@@ -112,6 +112,7 @@ namespace network
       void allocate_memory();
       void get_output_shape(int shape[], int i);
       void randomise_batch(); //randomise input to the neural network
+      void update_batch(float* data, int* labels);
       void enqueue_batch(float * batch);
       void randomise_params();
       void forward();
