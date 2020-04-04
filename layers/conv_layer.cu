@@ -211,13 +211,6 @@ void ConvLayer::forward(float alpha, float beta, float* d_input, float* d_kernel
                                        d_output));
   }
 
-void ConvLayer::reset_gradients(float* d_dkernel) {
-  int shape[4];
-  int size;
-  size = this->get_params_shape_and_bytes(shape);
-  // gpuErrchk(cudaMemset(d_dkernel, 0, size)); // [TODO] Unknown Error
-}
-
 void ConvLayer::update_weights(float* d_kernel, float* d_dkernel, float lr) {
   int shape[4];
   int size;
@@ -225,7 +218,6 @@ void ConvLayer::update_weights(float* d_kernel, float* d_dkernel, float lr) {
   size = this->get_params_shape_and_bytes(shape);
   int num_elements = shape[0]*shape[1]*shape[2]*shape[3];
   update<<<(num_elements/TILE_SIZE)+1,TILE_SIZE>>>(d_kernel,d_dkernel,lr,num_elements);
-  reset_gradients(d_dkernel);
 }
   
 void ConvLayer::backward(float alpha,

@@ -12,8 +12,6 @@ namespace layers{
 
 class FCLayer : public layers::Layer
  {
-  private:
-    void reset_gradients(float* d_diffkernel);
   public:
     cublasHandle_t handle;
     FCLayer(cublasHandle_t cublas,int batch_size,int input_height,int output_height);

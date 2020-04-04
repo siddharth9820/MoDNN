@@ -7,8 +7,6 @@ namespace layers {
 
   class ConvLayer : public layers::Layer
   {
-    private:
-      void reset_gradients(float* d_dkernel);
     public:
       cudnnHandle_t handle;
       cudnnTensorDescriptor_t input_descriptor;
