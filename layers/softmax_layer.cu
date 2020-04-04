@@ -55,6 +55,6 @@ void Softmax::forward(float* d_input, float * d_output)
 
 void Softmax::backward(const int *label, float *diff, float * output)
 {
-  cudaMemcpy(diff,output,obatch_size*oheight*sizeof(float),cudaMemcpyDeviceToDevice);
+  gpuErrchk(cudaMemcpy(diff,output,obatch_size*oheight*sizeof(float),cudaMemcpyDeviceToDevice));
   SoftmaxLossBackprop<<<(obatch_size+255)/256, 256>>>(label, oheight, obatch_size, diff);
 }

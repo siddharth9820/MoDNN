@@ -211,6 +211,23 @@ void ConvLayer::forward(float alpha, float beta, float* d_input, float* d_kernel
                                        d_output));
   }
 
+void ConvLayer::reset_gradients(float* d_dkernel) {
+  int shape[4];
+  int size;
+  size = this->get_params_shape_and_bytes(shape);
+  // gpuErrchk(cudaMemset(d_dkernel, 0, size)); // [TODO] Unknown Error
+}
+
+void ConvLayer::update_weights(float* d_kernel, float* d_dkernel, float lr) {
+  int shape[4];
+  int size;
+  //update filter weights
+  size = this->get_params_shape_and_bytes(shape);
+  int num_elements = shape[0]*shape[1]*shape[2]*shape[3];
+  update<<<(num_elements/TILE_SIZE)+1,TILE_SIZE>>>(d_kernel,d_dkernel,lr,num_elements);
+  reset_gradients(d_dkernel);
+}
+  
 void ConvLayer::backward(float alpha,
   float beta,
   float* d_y,
@@ -252,20 +269,16 @@ void ConvLayer::backward(float alpha,
     d_dkernel
   ));
 
-  int shape[4];
-  //update filter weights
-  this->get_params_shape_and_bytes(shape);
-  int num_elements = shape[0]*shape[1]*shape[2]*shape[3];
-  update<<<(num_elements/TILE_SIZE)+1,TILE_SIZE>>>(d_kernel,d_dkernel,lr,num_elements);
+  //update_weights(d_kernel, d_dkernel, lr);
 }
 
 int ConvLayer::allocate_internal_mem(float **d_kernel, void **d_workspace,float **d_diffkernel)
   {
       int param_size = sizeof(float)*ikernel_width*ikernel_height*ichannels*ochannels;
       int workspace_size = get_total_workspace_size();
-      cudaMalloc(d_kernel, param_size);
-      cudaMalloc(d_workspace,workspace_size);
-      cudaMalloc(d_diffkernel,param_size);
+      gpuErrchk(cudaMalloc(d_kernel, param_size));
+      gpuErrchk(cudaMalloc(d_workspace,workspace_size));
+      gpuErrchk(cudaMalloc(d_diffkernel,param_size));
 
       return param_size+workspace_size;
 

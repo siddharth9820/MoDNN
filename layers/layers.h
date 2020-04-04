@@ -10,7 +10,6 @@
 #include <cublas_v2.h>
 #include <cassert>
 #include <cstdlib>
-
 #include <random>
 #include <cuda.h>
 #include <fstream>
@@ -117,7 +116,7 @@ namespace network
       void randomise_params();
       void forward();
       void backward();
-
+      void update_weights();
 
 
       float* offload_buffer(int layer_number,std::string type,int shape[]); //type is one of "output","workspace","input"

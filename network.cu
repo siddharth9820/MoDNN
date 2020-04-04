@@ -99,12 +99,12 @@ void seqNetwork::allocate_memory()
 
       bytes = new_ip->get_output_shape_and_bytes(shape);
       //layer_buffers[i] = init_buffer_map();
-      cudaMalloc(&(layer_buffers[i]["output"]),bytes);
-      cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
+      gpuErrchk(cudaMalloc(&(layer_buffers[i]["output"]),bytes));
+      gpuErrchk(cudaMalloc(&(layer_buffers[i]["doutput"]),bytes));
 
 
       layer_buffers[i]["labels"] = nullptr;
-      cudaMalloc(&(layer_buffers[i]["labels"]),batch_size*sizeof(int));
+      gpuErrchk(cudaMalloc(&(layer_buffers[i]["labels"]),batch_size*sizeof(int)));
 
     }
     else if(layer_type == "conv")
@@ -131,8 +131,8 @@ void seqNetwork::allocate_memory()
       layer_objects.push_back(new_conv);
 
       //layer_buffers[i] = init_buffer_map();
-      cudaMalloc(&(layer_buffers[i]["output"]),bytes);
-      cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
+      gpuErrchk(cudaMalloc(&(layer_buffers[i]["output"]),bytes));
+      gpuErrchk(cudaMalloc(&(layer_buffers[i]["doutput"]),bytes));
 
       layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
       layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
@@ -180,8 +180,8 @@ void seqNetwork::allocate_memory()
 
 
       layer_buffers[i] = init_buffer_map();
-      cudaMalloc(&(layer_buffers[i]["output"]),bytes);
-      cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
+      gpuErrchk(cudaMalloc(&(layer_buffers[i]["output"]),bytes));
+      gpuErrchk(cudaMalloc(&(layer_buffers[i]["doutput"]),bytes));
 
       layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
       layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
@@ -209,8 +209,8 @@ void seqNetwork::allocate_memory()
       layer_objects.push_back(new_softmax);
 
       //layer_buffers[i] = init_buffer_map();
-      cudaMalloc(&(layer_buffers[i]["output"]),bytes);
-      cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
+      gpuErrchk(cudaMalloc(&(layer_buffers[i]["output"]),bytes));
+      gpuErrchk(cudaMalloc(&(layer_buffers[i]["doutput"]),bytes));
 
       layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
       layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
@@ -230,8 +230,8 @@ void seqNetwork::allocate_memory()
 
       layer_objects.push_back(new_relu);
 
-      cudaMalloc(&(layer_buffers[i]["output"]),bytes);
-      cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
+      gpuErrchk(cudaMalloc(&(layer_buffers[i]["output"]),bytes));
+      gpuErrchk(cudaMalloc(&(layer_buffers[i]["doutput"]),bytes));
 
       layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
       layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
@@ -279,10 +279,10 @@ void seqNetwork::allocate_memory()
       bytes =  new_pooling->get_output_shape_and_bytes(shape);
       layer_buffers[i] = init_buffer_map();
       layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
-      cudaMalloc(&(layer_buffers[i]["output"]),bytes);
+      gpuErrchk(cudaMalloc(&(layer_buffers[i]["output"]),bytes));
 
       layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
-      cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
+      gpuErrchk(cudaMalloc(&(layer_buffers[i]["doutput"]),bytes));
 
 
       layer_objects.push_back(new_pooling);
@@ -372,7 +372,7 @@ void seqNetwork::forward()
     else if(layer_type=="fc")
     {
       FCLayer * layer_obj = (FCLayer*)(layer_objects[i]);
-      layer_obj -> backward(buffer_map["input"], buffer_map["params"],buffer_map["dparams"],buffer_map["dinput"], buffer_map["doutput"],lr);
+      layer_obj -> backward(1.0,0.0,0.0,buffer_map["input"], buffer_map["params"],buffer_map["dparams"],buffer_map["dinput"], buffer_map["doutput"],lr);
     }
     else if(layer_type == "softmax")
     {
@@ -390,6 +390,26 @@ void seqNetwork::forward()
       relu * layer_obj = (relu*)(layer_objects[i]);
       layer_obj -> backward(buffer_map["input"],buffer_map["output"],buffer_map["dinput"],buffer_map["doutput"]);
     }
+  }
+}
+
+void seqNetwork::update_weights() {
+  for(int i=num_layers-1;i>=0;i--)
+  {
+    std::map<std::string,float*> buffer_map = layer_buffers[i];
+    std::string layer_type = layer_info[i][0];
+    //cudaDeviceSynchronize();
+    if(layer_type=="conv")
+    {
+      ConvLayer * layer_obj = (ConvLayer*)(layer_objects[i]);
+      layer_obj -> update_weights( buffer_map["params"], buffer_map["dparams"],lr);
+    }
+    else if(layer_type=="fc")
+    {
+      FCLayer * layer_obj = (FCLayer*)(layer_objects[i]);
+      layer_obj -> update_weights( buffer_map["params"],buffer_map["dparams"],lr);
+    }
+    
   }
 }
 
@@ -517,7 +537,7 @@ void seqNetwork::prefetch_buffer(int layer_number,std::string type)
   }
 
   if(layer_buffers[layer_number][type] == nullptr)
-    cudaMalloc(&layer_buffers[layer_number][type],bytes);
+    gpuErrchk(cudaMalloc(&layer_buffers[layer_number][type],bytes));
 
   gpuErrchk(cudaMemcpy(layer_buffers[layer_number][type],layer_offloaded_buffers[layer_number][type],bytes,
     cudaMemcpyHostToDevice));

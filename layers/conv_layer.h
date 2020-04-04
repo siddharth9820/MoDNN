@@ -7,6 +7,8 @@ namespace layers {
 
   class ConvLayer : public layers::Layer
   {
+    private:
+      void reset_gradients(float* d_dkernel);
     public:
       cudnnHandle_t handle;
       cudnnTensorDescriptor_t input_descriptor;
@@ -57,6 +59,7 @@ namespace layers {
     );
     int allocate_internal_mem(float **d_kernel, void **d_workspace,float **d_diffkernel);
     void populate_filter_params(float *d_kernel);
+    void update_weights(float* d_kernel, float* d_diffkernel, float lr);
     int get_output_shape_and_bytes(int shape[]);
 
     ~ConvLayer();
