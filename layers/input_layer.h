@@ -13,6 +13,7 @@ namespace layers{
       void randomly_populate(float * data,float * labels);
       void update_batch(float* data, float* labels, float* data_buffer, float* labels_buffer);
       int get_output_shape_and_bytes(int shape[]);
+      int get_total_memory();
 
   };
 

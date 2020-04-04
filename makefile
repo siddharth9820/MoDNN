@@ -14,13 +14,13 @@ opencv_flags = -lopencv_imgcodecs -lopencv_imgproc -lopencv_core
 
 
 
-all: main.o network.o $(layers) $(kernels) mnist.o data_loader.o
-	$(cc) $(flags) -o test main.o network.o $(layers) $(kernels) mnist.o data_loader.o $(nvidia_flags) $(opencv_flags)
+all: main.o network.o $(layers) $(kernels) mnist.o data_loader.o vmm.o
+	$(cc) $(flags) -o test main.o network.o $(layers) $(kernels) mnist.o data_loader.o vmm.o $(nvidia_flags) $(opencv_flags)
 
-main.o: $(home)/main.cu $(home)/layers/layers.h $(home)/mnist_dataset/mnist.h $(home)/data_core/data_loader.h  
+main.o: $(home)/main.cu $(home)/layers/layers.h $(home)/mnist_dataset/mnist.h $(home)/data_core/data_loader.h
 	$(cc) -c $(flags) $(home)/main.cu
 
-network.o:  $(home)/network.cu $(layer_headers)
+network.o:  $(home)/network.cu $(layer_headers) $(home)/vmm/vmm.h
 	$(cc) -c $(flags) $(home)/network.cu
 
 $(layers): %.o: $(home)/layers/%.cu $(home)/layers/%.h
@@ -35,5 +35,8 @@ mnist.o : $(home)/mnist_dataset/mnist.cpp $(home)/mnist_dataset/mnist.h $(home)/
 data_loader.o : $(home)/data_core/data_loader.cu $(home)/data_core/data_loader.h
 	$(cc) -c $(flags) $(home)/data_core/data_loader.cu
 
+vmm.o : $(home)/vmm/vmm.cpp $(home)/vmm/vmm.h
+	$(cc) -c $(flags) $(home)/vmm/vmm.cpp
+
 clean:
-	rm $(layers) $(kernels) test mnist.o data_loader.o
+	rm $(layers) $(kernels) test mnist.o data_loader.o vmm.o

@@ -1,8 +1,14 @@
+#ifndef VMM
+#define VMM
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
 #include <string>
-#include "../layers/layers.h"
+#include <cudnn.h>
+#include <cublas_v2.h>
+#include <cuda.h>
 
 struct memoryNode{
   float* startAddrCuda;			// stores the address in GPU memory
@@ -54,3 +60,5 @@ class vmm{
 		void printNodes();
     ~vmm();
 };
+
+#endif

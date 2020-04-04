@@ -18,6 +18,7 @@ namespace layers {
       int get_input_shape_and_bytes(int shape[]);
       void forward(float* d_input, float * d_output);
       void backward(float * d_input, float *d_output, float *d_diffinput, float *d_diffoutput);
+      int get_total_memory();
   };
 }
 #endif

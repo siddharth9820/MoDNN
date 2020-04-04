@@ -32,3 +32,8 @@ int Flatten::get_input_shape_and_bytes(int shape[])
 
   return obatch_size*oheight*sizeof(float);
 }
+
+int Flatten::get_total_memory()
+{
+  return 0;
+}

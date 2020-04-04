@@ -55,9 +55,10 @@ namespace layers {
       float* d_dkernel,
       float lr
     );
-    int allocate_internal_mem(float **d_kernel, void **d_workspace,float **d_diffkernel);
+    
     void populate_filter_params(float *d_kernel);
     int get_output_shape_and_bytes(int shape[]);
+    int get_total_memory();
 
     ~ConvLayer();
 

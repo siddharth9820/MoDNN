@@ -175,3 +175,10 @@ void FCLayer::backward(float *d_input, float* d_kernel,float *d_diffkernel,float
     update<<<(num_ele/TILE_SIZE)+1,(TILE_SIZE)>>>(d_kernel,d_diffkernel,lr,num_ele);
 
 }
+
+
+int FCLayer::get_total_memory()
+{
+  int shape[4];
+  return get_output_shape_and_bytes(shape) + get_params_shape_and_bytes(shape);
+}

@@ -3,7 +3,7 @@
 
 #include "layers.h"
 
-#define USE_CUBLAS true
+#define USE_CUBLAS true //DONT SET TO FALSE
 #define TILE_SIZE  32
 #define BLOCK_SIZE 8
 
@@ -22,7 +22,7 @@ class FCLayer : public layers::Layer
     void populate_filter_params(float *d_kernel);
     int get_input_shape_and_bytes(int shape[]);
     int get_params_shape_and_bytes(int shape[]);
-
+    int get_total_memory();
  };
 }
 

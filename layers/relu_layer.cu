@@ -70,3 +70,8 @@ void relu::backward(float * d_input, float *d_output, float *d_diffinput, float 
       d_diffinput
     ));
 }
+int relu::get_total_memory()
+{
+  int shape[4];
+  return get_output_shape_and_bytes(shape);
+}
