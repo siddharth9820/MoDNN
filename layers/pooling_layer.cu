@@ -2,16 +2,16 @@
 
 using namespace layers;
 
-PoolingLayer::PoolingLayer(cudnnHandle_t* handle, 
-    int window_height, 
-    int window_width, 
+PoolingLayer::PoolingLayer(cudnnHandle_t* handle,
+    int window_height,
+    int window_width,
     int vertical_stride,
     int horizontal_stride,
     int batch_size,
     int input_height,
     int input_width,
     int input_channels,
-    padding_type pad, 
+    padding_type pad,
     cudnnPoolingMode_t mode) {
     // mode -- CUDNN_POOLING_MAX(0), CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING(1)
     //                 CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING(2), CUDNN_POOLING_MAX_DETERMINISTIC(3)
@@ -48,7 +48,7 @@ PoolingLayer::PoolingLayer(cudnnHandle_t* handle,
             /*horizontalStride*/horizontal_stride
         ));
     }
-    
+
     checkCUDNN(cudnnCreateTensorDescriptor(&input_descriptor));
     checkCUDNN(cudnnSetTensor4dDescriptor(input_descriptor,
         /*format=*/CUDNN_TENSOR_NCHW,
@@ -89,7 +89,7 @@ void PoolingLayer::forward(float alpha, float beta, float* d_input, float* d_out
 }
 
 void PoolingLayer::backward(float alpha, float beta, float* d_y, float* d_dy, float* d_x, float* d_dx) {
-    checkCUDNN(cudnnPoolingBackward(*handle_, 
+    checkCUDNN(cudnnPoolingBackward(*handle_,
         pooling_descriptor,
         &alpha,
         output_descriptor,
@@ -110,6 +110,12 @@ int PoolingLayer::get_output_shape_and_bytes(int shape[]) {
     shape[2] = owidth;
     shape[3] = ochannels;
     return sizeof(float)*obatch_size*ochannels*oheight*owidth;
+}
+
+int PoolingLayer::get_total_memory()
+{
+  int shape[4];
+  return get_output_shape_and_bytes(shape);
 }
 
 PoolingLayer::~PoolingLayer() {

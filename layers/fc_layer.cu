@@ -176,3 +176,10 @@ void FCLayer::backward(float alpha, float beta_weights, float beta_input,float *
     //update weights
     // update_weights(d_kernel, d_diffkernel, lr);
 }
+
+
+int FCLayer::get_total_memory()
+{
+  int shape[4];
+  return get_output_shape_and_bytes(shape) + get_params_shape_and_bytes(shape);
+}

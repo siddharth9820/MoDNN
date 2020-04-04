@@ -33,7 +33,7 @@ void InputLayer::randomly_populate(float *data,float * labels)
 
   int dim1 = owidth*ochannels;
   int dim2 = oheight*dim1;
-  
+
   for(int data_point = 0; data_point < obatch_size; data_point++)
     for(int row=0;row<oheight;row++)
       for(int col=0;col<owidth;col++)
@@ -59,4 +59,11 @@ void InputLayer::randomly_populate(float *data,float * labels)
 void InputLayer::update_batch(float* data, float* labels, float* data_buffer, float* labels_buffer) {
   gpuErrchk(cudaMemcpy(data_buffer,data, obatch_size *oheight*owidth*ochannels*sizeof(float),cudaMemcpyHostToDevice));
   gpuErrchk(cudaMemcpy((void *)(labels_buffer),labels,obatch_size*sizeof(int),cudaMemcpyHostToDevice));
+}
+
+int InputLayer::get_total_memory()
+{
+  //std::cout << "In input layer get total  memory " << std::endl;
+  int shape[4];
+  return get_output_shape_and_bytes(shape);
 }

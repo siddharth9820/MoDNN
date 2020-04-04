@@ -7,6 +7,8 @@
 using namespace layers;
 using namespace network;
 
+
+
 void print_output(float * layer,int shape[])
 {
   for(int i=0;i<shape[0];i++){
@@ -47,19 +49,16 @@ int main(int argc, const char* argv[])
     cublasCreate(&cublas);
     std::ofstream outdata;
 
-    //std::cout << sizeof(unsigned) << " " << sizeof(int) << std::endl;
-    //return 0;
 
-    std::string images_file_str = "mnist_dataset/data/train-images.idx3-ubyte";
-    std::string label_file_str = "mnist_dataset/data/train-labels.idx1-ubyte";
+   
 
     cudaSetDevice(0);
 
+    std::string images_file_str = "/content/src/mnist_dataset/data/train-images-idx3-ubyte";
+    std::string label_file_str = "/content/src/mnist_dataset/data/train-labels-idx1-ubyte";
     char * images_file = (char*)images_file_str.c_str();
     char * label_file = (char*)label_file_str.c_str();
-
     std::cout << images_file << " "<<label_file << std::endl;
-
     float* data_batch, *label_batch;
     unsigned batch_size = 20,rows;
     unsigned dataset_size;
@@ -69,17 +68,22 @@ int main(int argc, const char* argv[])
     dataset_size = dataset->getDatasetSize();
 
     std::cout << "Creating DataLoader" << std::endl;
-    DataLoader* dataloader = new DataLoader(dataset, batch_size);
 
+    DataLoader* dataloader = new DataLoader(dataset, batch_size);
     rows = sqrt(dataset->getInputDim());
     std::string input_spec = "input "  + std::to_string(batch_size)+ " " + std::to_string(rows) +" "+std::to_string(rows)+ " " + "1 " +std::to_string(dataset->getLabelDim());
-    std::cout << input_spec << std::endl;
-    std::vector<std::string> specs = {input_spec,"conv 3 3 3","relu","maxpool 2 2 2 2","flatten","fc 50","relu","fc "+std::to_string(dataset->getLabelDim()),"softmax"};
-
     int* label_batch_integer = (int*)malloc(sizeof(int)*batch_size);
+
+
+    std::vector<std::string> specs = {input_spec,"conv 3 3 3","relu","maxpool 2 2 2 2","flatten","fc 50","relu","fc "+std::to_string(dataset->getLabelDim()),"softmax"};
     seqNetwork nn = seqNetwork(cudnn,cublas,specs,LR);
+
+    vmm * mem_manager = new vmm(nn.get_total_memory()+20);
+    nn.allocate_all_memory(mem_manager);
+
+    mem_manager->printNodes();
+
     nn.print_network_info();
-    nn.allocate_memory();
     int shape[4];
     nn.get_output_shape(shape,nn.num_layers-1);
 
@@ -118,6 +122,8 @@ int main(int argc, const char* argv[])
 
         dataloader->get_next_batch(&data_batch, &label_batch);
         label_batch_converter_mnist(label_batch, label_batch_integer, batch_size);
+
+
         nn.update_batch(data_batch, label_batch_integer);
         nn.forward();
         nn.backward();
@@ -125,6 +131,7 @@ int main(int argc, const char* argv[])
         if(j%10==0)
         {
           output = nn.offload_buffer(nn.num_layers-1,"output",shape);
+
           loss += categorical_cross_entropy_loss(output,shape,label_batch_integer);
         }
 

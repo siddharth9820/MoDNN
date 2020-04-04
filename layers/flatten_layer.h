@@ -10,6 +10,7 @@ class Flatten : public layers::Layer
    Flatten(int batch_size,int input_height,int input_width,int input_channels);
    int get_output_shape_and_bytes(int shape[]);
    int get_input_shape_and_bytes(int shape[]);
+   int get_total_memory();
  };
 }
 
