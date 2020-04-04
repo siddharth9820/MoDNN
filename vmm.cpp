@@ -150,7 +150,7 @@ class vmm{
 			}
 			*ptr = NULL;
 
-			defragmentMemSimple();
+			defragmentMemSimple(); //join contiguous free blocks
 
 			*ptr = allocateHelper(ptr,bytes);
 
