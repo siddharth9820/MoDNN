@@ -57,6 +57,7 @@ namespace layers {
     );
     
     void populate_filter_params(float *d_kernel);
+    void update_weights(float* d_kernel, float* d_diffkernel, float lr);
     int get_output_shape_and_bytes(int shape[]);
     int get_total_memory();
 

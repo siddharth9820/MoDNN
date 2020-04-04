@@ -43,7 +43,7 @@ void InputLayer::randomly_populate(float *data,float * labels)
 
   //std::cout << "Checking random input layer" << std::endl;
   //std::cout << init_params[0][0][0][1] << std::endl;
-  cudaMemcpy(data,init_params, obatch_size *oheight*owidth*ochannels*sizeof(float),cudaMemcpyHostToDevice);
+  gpuErrchk(cudaMemcpy(data,init_params, obatch_size *oheight*owidth*ochannels*sizeof(float),cudaMemcpyHostToDevice));
 
   for (int j = 0; j < obatch_size; j++)
   {
@@ -52,13 +52,13 @@ void InputLayer::randomly_populate(float *data,float * labels)
 
   }
 
-  cudaMemcpy((void *)(labels),init_labels,obatch_size*sizeof(int),cudaMemcpyHostToDevice);
+  gpuErrchk(cudaMemcpy((void *)(labels),init_labels,obatch_size*sizeof(int),cudaMemcpyHostToDevice));
 
 }
 
 void InputLayer::update_batch(float* data, float* labels, float* data_buffer, float* labels_buffer) {
-  cudaMemcpy(data_buffer,data, obatch_size *oheight*owidth*ochannels*sizeof(float),cudaMemcpyHostToDevice);
-  cudaMemcpy((void *)(labels_buffer),labels,obatch_size*sizeof(int),cudaMemcpyHostToDevice);
+  gpuErrchk(cudaMemcpy(data_buffer,data, obatch_size *oheight*owidth*ochannels*sizeof(float),cudaMemcpyHostToDevice));
+  gpuErrchk(cudaMemcpy((void *)(labels_buffer),labels,obatch_size*sizeof(int),cudaMemcpyHostToDevice));
 }
 
 int InputLayer::get_total_memory()

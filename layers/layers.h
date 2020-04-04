@@ -11,7 +11,6 @@
 #include <cublas_v2.h>
 #include <cassert>
 #include <cstdlib>
-
 #include <random>
 #include <cuda.h>
 #include <fstream>
@@ -120,6 +119,8 @@ namespace network
       void randomise_params();
       void forward();
       void backward();
+      void update_weights();
+
       int get_total_memory();
       void allocate_all_memory(vmm * mem_manager);
 

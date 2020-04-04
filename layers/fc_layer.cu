@@ -44,8 +44,8 @@ int FCLayer::get_params_shape_and_bytes(int shape[])
 int FCLayer::allocate_internal_mem(float **d_kernel,float **d_diffkernel)
 {
   int param_size = iheight*oheight*sizeof(float);
-  cudaMalloc(d_kernel,param_size);
-  cudaMalloc(d_diffkernel,param_size);
+  gpuErrchk(cudaMalloc(d_kernel,param_size));
+  gpuErrchk(cudaMalloc(d_diffkernel,param_size));
   return param_size;
 }
 
@@ -97,10 +97,16 @@ void FCLayer::forward(float * d_input, float * d_kernel, float * d_output)
 
 }
 
-void FCLayer::backward(float *d_input, float* d_kernel,float *d_diffkernel,float *d_diffinput, float *d_diffoutput, float lr)
-{
-  float alpha = 1.0,beta = 0.0;
+void FCLayer::update_weights(float* d_kernel, float* d_diffkernel, float lr) {
+  int shape[4];
+  this->get_params_shape_and_bytes(shape);
+  int num_ele = shape[0]*shape[1];
+  //std::cout <<"fc backward "<<TILE_SIZE <<" "<<lr<<std::endl;
+  update<<<(num_ele/TILE_SIZE)+1,(TILE_SIZE)>>>(d_kernel,d_diffkernel,lr,num_ele);
+}
 
+void FCLayer::backward(float alpha, float beta_weights, float beta_input,float *d_input, float* d_kernel,float *d_diffkernel,float *d_diffinput, float *d_diffoutput, float lr)
+{
   if (USE_CUBLAS){
   checkCUBLAS(cublasSgemm(handle,
               CUBLAS_OP_N, //info for B, use CUBLAS_OP_T if you want to use BT
@@ -113,7 +119,7 @@ void FCLayer::backward(float *d_input, float* d_kernel,float *d_diffkernel,float
               oheight, //N
               d_input, //A
               iheight, //K
-              &beta,
+              &beta_weights,
               d_diffkernel,//C
               oheight //K
             ));
@@ -129,7 +135,7 @@ void FCLayer::backward(float *d_input, float* d_kernel,float *d_diffkernel,float
               oheight, //N
               d_diffoutput, //A
               oheight, //K
-              &beta,
+              &beta_input,
               d_diffinput,//C
               iheight //K
             ));
@@ -168,12 +174,7 @@ void FCLayer::backward(float *d_input, float* d_kernel,float *d_diffkernel,float
 
     }
     //update weights
-    int shape[4];
-    this->get_params_shape_and_bytes(shape);
-    int num_ele = shape[0]*shape[1];
-    //std::cout <<"fc backward "<<TILE_SIZE <<" "<<lr<<std::endl;
-    update<<<(num_ele/TILE_SIZE)+1,(TILE_SIZE)>>>(d_kernel,d_diffkernel,lr,num_ele);
-
+    // update_weights(d_kernel, d_diffkernel, lr);
 }
 
 
