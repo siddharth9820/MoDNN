@@ -7,6 +7,7 @@
 #include "layers/layers.h"
 #include "layers/relu_layer.h"
 
+
 using namespace network;
 using namespace layers;
 
@@ -17,6 +18,7 @@ seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std
   Input -> "input N H W C"
   Conv ->  "conv H W C"
   */
+
   num_layers = specs.size();
   handle = cudnn;
   blas_handle = cublas;
@@ -31,6 +33,8 @@ seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std
       }
       layer_info.push_back(info);
     }
+
+  make_nn_objs();
 
 }
 
@@ -63,7 +67,31 @@ void seqNetwork::get_output_shape(int shape[],int i)
     ((PoolingLayer*)last_layer)->get_output_shape_and_bytes(shape);
 }
 
-void seqNetwork::allocate_memory()
+int seqNetwork::get_total_memory()
+{
+  std::map<std::string,int>::iterator it;
+  std::string buff_type;
+  int buff_bytes;
+  int total_bytes=0;
+  for(int i=0;i<num_layers;i++)
+  {
+    std::cout << layer_info[i][0] << std::endl;
+    it = layer_buffer_bytes[i].begin();
+    while(it!=layer_buffer_bytes[i].end())
+    {
+      buff_type = it->first;
+      buff_bytes = it->second;
+      total_bytes += buff_bytes;
+      std::cout << buff_type << " " << buff_bytes << std::endl;
+      it++;
+    }
+  }
+  std::cout << total_bytes << std::endl;
+  return total_bytes;
+
+}
+
+void seqNetwork::make_nn_objs()
 {
   std::string layer_type;
   int shape[4],batch_size,rows,columns,channels,num_classes;
@@ -77,11 +105,12 @@ void seqNetwork::allocate_memory()
   //std::cout << "Allocating memory for the Neural Network" << std::endl;
   layer_buffers.resize(num_layers);
   layer_offloaded_buffers.resize(num_layers);
+  layer_buffer_bytes.resize(num_layers);
 
   for(int i=0;i<num_layers;i++)
   {
     layer_type = layer_info[i][0];
-    //std::cout << "Layer "<<i+1<<" : "<<layer_type << std::endl;
+    std::cout << "Layer "<<i+1<<" : "<<layer_type << std::endl;
     layer_offloaded_buffers[i] = init_buffer_map();
     layer_buffers[i] = init_buffer_map();
     if(layer_type == "input")
@@ -99,13 +128,16 @@ void seqNetwork::allocate_memory()
 
       bytes = new_ip->get_output_shape_and_bytes(shape);
       //layer_buffers[i] = init_buffer_map();
-      cudaMalloc(&(layer_buffers[i]["output"]),bytes);
-      cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
+      layer_buffer_bytes[i]["output"]=bytes;//cudaMalloc(&(layer_buffers[i]["output"]),bytes);
+      layer_buffer_bytes[i]["doutput"]=bytes;//cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
 
 
       layer_buffers[i]["labels"] = nullptr;
-      cudaMalloc(&(layer_buffers[i]["labels"]),batch_size*sizeof(int));
+      layer_buffer_bytes[i]["labels"]=batch_size*sizeof(int);//cudaMalloc(&(layer_buffers[i]["labels"]),batch_size*sizeof(int));
 
+
+
+      //std::cout << "finished with input layer" << std::endl;
     }
     else if(layer_type == "conv")
     {
@@ -131,15 +163,17 @@ void seqNetwork::allocate_memory()
       layer_objects.push_back(new_conv);
 
       //layer_buffers[i] = init_buffer_map();
-      cudaMalloc(&(layer_buffers[i]["output"]),bytes);
-      cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
+      layer_buffer_bytes[i]["output"]=bytes;//cudaMalloc(&(layer_buffers[i]["output"]),bytes);
+      layer_buffer_bytes[i]["doutput"]=bytes;//cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
 
-      layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
-      layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
+      // layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
+      // layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
 
-      std::cout << "Addrs of conv::dout "<<layer_buffers[i]["doutput"] <<std::endl;
 
-      new_conv -> allocate_internal_mem(&(layer_buffers[i]["params"]),(void**)&(layer_buffers[i]["workspace"]),&(layer_buffers[i]["dparams"]));
+      //new_conv -> allocate_internal_mem(&(layer_buffers[i]["params"]),(void**)&(layer_buffers[i]["workspace"]),&(layer_buffers[i]["dparams"]));
+      layer_buffer_bytes[i]["params"] = new_conv -> get_params_shape_and_bytes(shape);
+      layer_buffer_bytes[i]["dparams"] = layer_buffer_bytes[i]["params"];
+      layer_buffer_bytes[i]["workspace"] = new_conv -> get_total_workspace_size();
 
     }
     else if(layer_type == "flatten")
@@ -155,13 +189,15 @@ void seqNetwork::allocate_memory()
       Flatten * new_flat = new Flatten(batch_size,rows,columns,channels);
       layer_objects.push_back(new_flat);
 
-      layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
-      layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
-      layer_buffers[i]["output"] = layer_buffers[i]["input"];
-      layer_buffers[i]["doutput"] = layer_buffers[i]["dinput"];
+      // layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
+      // layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
+      // layer_buffers[i]["output"] = layer_buffers[i]["input"];
+      // layer_buffers[i]["doutput"] = layer_buffers[i]["dinput"];
 
-      std::cout << "Addrs of flatten ::dout "<<layer_buffers[i]["doutput"]<<std::endl;
-      std::cout << "Addrs of flatten ::out "<<layer_buffers[i]["output"]<<std::endl;
+      layer_buffer_bytes[i]["output"]=0;
+      layer_buffer_bytes[i]["doutput"]=0;
+
+
 
     }
     else if(layer_type == "fc")
@@ -179,18 +215,18 @@ void seqNetwork::allocate_memory()
       bytes =  new_fc->get_output_shape_and_bytes(shape);
 
 
-      layer_buffers[i] = init_buffer_map();
-      cudaMalloc(&(layer_buffers[i]["output"]),bytes);
-      cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
 
-      layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
-      layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
+      layer_buffer_bytes[i]["output"]=bytes;//cudaMalloc(&(layer_buffers[i]["output"]),bytes);
+      layer_buffer_bytes[i]["doutput"]=bytes;//cudaMalloc(&(layer_buffers[i]["output"]),bytes);
 
-      std::cout << "Addrs of fc ::din "<<layer_buffers[i]["dinput"]<<std::endl;
-      std::cout << "Addrs of fc :: in "<<layer_buffers[i]["input"]<<std::endl;
 
-      new_fc -> allocate_internal_mem(&(layer_buffers[i]["params"]),&(layer_buffers[i]["dparams"]));
+      // layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
+      // layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
 
+
+      //new_fc -> allocate_internal_mem(&(layer_buffers[i]["params"]),&(layer_buffers[i]["dparams"]));
+      layer_buffer_bytes[i]["params"] = new_fc -> get_params_shape_and_bytes(shape);
+      layer_buffer_bytes[i]["dparams"] = new_fc -> get_params_shape_and_bytes(shape);
 
       layer_objects.push_back(new_fc);
 
@@ -209,11 +245,12 @@ void seqNetwork::allocate_memory()
       layer_objects.push_back(new_softmax);
 
       //layer_buffers[i] = init_buffer_map();
-      cudaMalloc(&(layer_buffers[i]["output"]),bytes);
-      cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
+      layer_buffer_bytes[i]["output"]=bytes;//cudaMalloc(&(layer_buffers[i]["output"]),bytes);
+      layer_buffer_bytes[i]["doutput"]=bytes;//cudaMalloc(&(layer_buffers[i]["output"]),bytes);
 
-      layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
-      layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
+
+      // layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
+      // layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
 
 
     }
@@ -230,11 +267,11 @@ void seqNetwork::allocate_memory()
 
       layer_objects.push_back(new_relu);
 
-      cudaMalloc(&(layer_buffers[i]["output"]),bytes);
-      cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
+      layer_buffer_bytes[i]["output"]=bytes;//cudaMalloc(&(layer_buffers[i]["output"]),bytes);
+      layer_buffer_bytes[i]["doutput"]=bytes;//cudaMalloc(&(layer_buffers[i]["output"]),bytes);
 
-      layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
-      layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
+      // layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
+      // layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
 
 
     }
@@ -278,14 +315,31 @@ void seqNetwork::allocate_memory()
 
       bytes =  new_pooling->get_output_shape_and_bytes(shape);
       layer_buffers[i] = init_buffer_map();
-      layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
-      cudaMalloc(&(layer_buffers[i]["output"]),bytes);
+      //layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
+      layer_buffer_bytes[i]["output"]=bytes;//cudaMalloc(&(layer_buffers[i]["output"]),bytes);
 
-      layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
-      cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
+      //layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
+      layer_buffer_bytes[i]["doutput"]=bytes;//cudaMalloc(&(layer_buffers[i]["output"]),bytes);
 
 
       layer_objects.push_back(new_pooling);
+    }
+
+  }
+}
+
+
+void seqNetwork::link_all_buffers()
+{
+  for(int i=1;i<num_layers;i++)
+  {
+    layer_buffers[i]["input"] = layer_buffers[i-1]["output"];
+    layer_buffers[i]["dinput"] = layer_buffers[i-1]["doutput"];
+
+    if(layer_info[i][0]=="flatten")
+    {
+        layer_buffers[i]["output"] = layer_buffers[i]["input"];
+        layer_buffers[i]["doutput"] = layer_buffers[i]["dinput"];
     }
 
   }
@@ -528,6 +582,30 @@ void seqNetwork::prefetch_buffer(int layer_number,std::string type)
   //layer_offloaded_buffers[layer_number][type] = nullptr;
 }
 
+void seqNetwork::allocate_all_memory(vmm * mem_manager)
+{
+  std::map<std::string,int>::iterator it;
+  std::string buff_type;
+  int buff_bytes;
+  int total_bytes=0;
+  for(int i=0;i<num_layers;i++)
+  {
+    std::cout << layer_info[i][0] << std::endl;
+    it = layer_buffer_bytes[i].begin();
+    while(it!=layer_buffer_bytes[i].end())
+    {
+      buff_type = it->first;
+      buff_bytes = it->second;
+      total_bytes += buff_bytes;
+      //std::cout << buff_type << " " << buff_bytes << std::endl;
+      mem_manager->allocate(&layer_buffers[i][buff_type],buff_bytes);
+      it++;
+    }
+  }
+  std::cout << total_bytes << std::endl;
+  link_all_buffers();
+}
+
 seqNetwork::~seqNetwork()
 {
   cudnnDestroy(handle);
@@ -542,5 +620,9 @@ seqNetwork::~seqNetwork()
       cudaFree(layer_buffers[i]["output"]);
     if(layer_buffers[i]["params"]!=nullptr)
       cudaFree(layer_buffers[i]["params"]);
+
+    if(layer_info[i][0]=="input")
+      cudaFree(layer_buffers[i]["labels"]);
+
   }
 }

@@ -259,17 +259,7 @@ void ConvLayer::backward(float alpha,
   update<<<(num_elements/TILE_SIZE)+1,TILE_SIZE>>>(d_kernel,d_dkernel,lr,num_elements);
 }
 
-int ConvLayer::allocate_internal_mem(float **d_kernel, void **d_workspace,float **d_diffkernel)
-  {
-      int param_size = sizeof(float)*ikernel_width*ikernel_height*ichannels*ochannels;
-      int workspace_size = get_total_workspace_size();
-      cudaMalloc(d_kernel, param_size);
-      cudaMalloc(d_workspace,workspace_size);
-      cudaMalloc(d_diffkernel,param_size);
 
-      return param_size+workspace_size;
-
-  }
 
 void ConvLayer::populate_filter_params(float *d_kernel)
 {
@@ -289,6 +279,12 @@ void ConvLayer::populate_filter_params(float *d_kernel)
 
   gpuErrchk(cudaMemcpy(d_kernel,init_params,ochannels*ikernel_height*ikernel_width*ichannels*sizeof(float),cudaMemcpyHostToDevice));
 
+}
+
+int ConvLayer::get_total_memory()
+{
+  int shape[4];
+  return get_total_workspace_size() + get_params_shape_and_bytes(shape) + get_output_shape_and_bytes(shape);
 }
 
 ConvLayer::~ConvLayer()

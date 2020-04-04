@@ -1,6 +1,7 @@
 #ifndef LAYER_H_
 #define LAYER_H_
 
+#include "../vmm/vmm.h"
 #include <cudnn.h>
 #include <vector>
 #include <string>
@@ -85,6 +86,7 @@ namespace layers
       int obatch_size,ochannels,oheight,owidth;
       int ibatch_size,ichannels,iheight,iwidth;
       void forward();
+      virtual int get_total_memory()=0; //activation(output) + params + workspace
 
   };
 
@@ -100,6 +102,7 @@ namespace network
       std::vector<std::vector<std::string > > layer_info;
       std::vector<std::map<std::string,float*> > layer_buffers;
       std::vector<std::map<std::string,float*> > layer_offloaded_buffers;
+      std::vector<std::map<std::string,int> > layer_buffer_bytes;
       std::vector< layers::Layer *> layer_objects;
 
 
@@ -109,7 +112,7 @@ namespace network
 
       seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std::string> &specs, float lr);
       void print_network_info();
-      void allocate_memory();
+
       void get_output_shape(int shape[], int i);
       void randomise_batch(); //randomise input to the neural network
       void update_batch(float* data, int* labels);
@@ -117,6 +120,9 @@ namespace network
       void randomise_params();
       void forward();
       void backward();
+      int get_total_memory();
+      void allocate_all_memory(vmm * mem_manager);
+
 
 
 
@@ -124,6 +130,9 @@ namespace network
       void prefetch_buffer(int layer_number,std::string type);
       ~seqNetwork();
 
+    private:
+      void make_nn_objs();
+      void link_all_buffers();
   };
 }
 

@@ -82,6 +82,12 @@ void vmm::defragmentMem()
 }
 
 allocstatus_t vmm::allocate(float** ptr,int bytes){
+  if(bytes==0)
+  {
+    *ptr = NULL;
+    return VMM_SUCCESS;
+  }
+
   if(bytes>freeSize){
     std::cout<<"Requested memory more than free memory"<<std::endl;
     return INSUFF_MEM;
