@@ -10,7 +10,7 @@
 #include <cublas_v2.h>
 #include <cassert>
 #include <cstdlib>
-#include <opencv2/opencv.hpp>
+
 #include <random>
 #include <cuda.h>
 #include <fstream>
@@ -56,7 +56,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 {
    if (code != cudaSuccess)
    {
-      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      fprintf(stdout,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
       if (abort) exit(code);
    }
 }
