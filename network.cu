@@ -35,7 +35,11 @@ seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std
     }
 
   make_nn_objs();
+  calculate_sub_batch();
+}
 
+void seqNetwork::calculate_sub_batch() {
+  sub_batch_size_ = max_sub_batch_size_;
 }
 
 void seqNetwork::print_network_info()
@@ -116,6 +120,7 @@ void seqNetwork::make_nn_objs()
     if(layer_type == "input")
     {
       batch_size = atoi(layer_info[i][1].c_str());
+      max_sub_batch_size_ = batch_size;
       rows = atoi(layer_info[i][2].c_str());
       columns = atoi(layer_info[i][3].c_str());
       channels = atoi(layer_info[i][4].c_str());
@@ -375,7 +380,14 @@ void seqNetwork::randomise_params()
   }
 }
 
-void seqNetwork::forward()
+void seqNetwork::forward() {
+  int loops = max_sub_batch_size_/sub_batch_size_;
+  for (int i = 0; i < loops; i++) {
+    forward_();
+  }
+}
+
+void seqNetwork::forward_()
 {
   for(int i=0;i<num_layers;i++)
   {
@@ -414,7 +426,15 @@ void seqNetwork::forward()
 
 }
 
- void seqNetwork::backward()
+void seqNetwork::backward() {
+  int loops = max_sub_batch_size_/sub_batch_size_;
+  backward_(0);
+  for (int i = 1; i < loops; i++) {
+    backward_(1);
+  }
+}
+
+ void seqNetwork::backward_(float beta)
 {
 
   for(int i=num_layers-1;i>=0;i--)
@@ -426,12 +446,12 @@ void seqNetwork::forward()
     else if(layer_type=="conv")
     {
       ConvLayer * layer_obj = (ConvLayer*)(layer_objects[i]);
-      layer_obj -> backward(1.0,0.0,buffer_map["output"],buffer_map["doutput"],(void*)buffer_map["workspace"], buffer_map["params"], buffer_map["input"], buffer_map["dinput"], buffer_map["dparams"],lr);
+      layer_obj -> backward(1.0,beta,0.0,buffer_map["output"],buffer_map["doutput"],(void*)buffer_map["workspace"], buffer_map["params"], buffer_map["input"], buffer_map["dinput"], buffer_map["dparams"],lr);
     }
     else if(layer_type=="fc")
     {
       FCLayer * layer_obj = (FCLayer*)(layer_objects[i]);
-      layer_obj -> backward(1.0,0.0,0.0,buffer_map["input"], buffer_map["params"],buffer_map["dparams"],buffer_map["dinput"], buffer_map["doutput"],lr);
+      layer_obj -> backward(1.0,beta,0.0,buffer_map["input"], buffer_map["params"],buffer_map["dparams"],buffer_map["dinput"], buffer_map["doutput"],lr);
     }
     else if(layer_type == "softmax")
     {
@@ -624,6 +644,7 @@ void seqNetwork::allocate_all_memory(vmm * mem_manager)
       total_bytes += buff_bytes;
       //std::cout << buff_type << " " << buff_bytes << std::endl;
       mem_manager->allocate(&layer_buffers[i][buff_type],buff_bytes);
+      cudaMemset(layer_buffers[i][buff_type], 0, buff_bytes); // TO enable hardcoding of beta=1.0
       it++;
     }
   }

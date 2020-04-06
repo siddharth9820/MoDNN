@@ -124,16 +124,18 @@ namespace network
       int get_total_memory();
       void allocate_all_memory(vmm * mem_manager);
 
-
-
-
       float* offload_buffer(int layer_number,std::string type,int shape[]); //type is one of "output","workspace","input"
       void prefetch_buffer(int layer_number,std::string type);
       ~seqNetwork();
 
     private:
+      void forward_();
+      void backward_(float beta);
+      unsigned max_sub_batch_size_;
+      unsigned sub_batch_size_; 
       void make_nn_objs();
       void link_all_buffers();
+      void calculate_sub_batch();
   };
 }
 
