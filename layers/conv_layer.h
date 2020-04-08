@@ -47,7 +47,6 @@ namespace layers {
     void backward(float alpha,
       float beta_filter,
       float beta_data,
-      float* d_y,
       float* d_dy,
       void* d_workspace,
       float* d_kernel,

@@ -223,7 +223,6 @@ void ConvLayer::update_weights(float* d_kernel, float* d_dkernel, float lr) {
 void ConvLayer::backward(float alpha,
   float beta_filter,
   float beta_data,
-  float* d_y,
   float* d_dy,
   void* d_workspace,
   float* d_kernel,

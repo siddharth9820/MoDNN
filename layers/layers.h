@@ -109,7 +109,7 @@ namespace network
       cublasHandle_t blas_handle;
 
 
-      seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std::string> &specs, float lr);
+      seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std::string> &specs, float lr, unsigned max_allowed_bytes);
       void print_network_info();
 
       void get_output_shape(int shape[], int i);
@@ -126,16 +126,23 @@ namespace network
 
       float* offload_buffer(int layer_number,std::string type,int shape[]); //type is one of "output","workspace","input"
       void prefetch_buffer(int layer_number,std::string type);
+      unsigned getMemoryLowerBound();
       ~seqNetwork();
 
     private:
       void forward_();
       void backward_(float beta);
+      void make_nn_objs(unsigned sub_batch_size);
+      void link_all_buffers();
+      unsigned calculate_sub_batch();
+      int get_total_memory_();
+      unsigned getMemoryLowerBound_();
+      
       unsigned max_sub_batch_size_;
       unsigned sub_batch_size_; 
-      void make_nn_objs();
-      void link_all_buffers();
-      void calculate_sub_batch();
+      unsigned max_allowed_bytes_;
+      unsigned total_seqnet_bytes_;
+      unsigned min_seqnet_bytes_;
   };
 }
 
