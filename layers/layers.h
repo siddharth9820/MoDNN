@@ -4,6 +4,7 @@
 #include "../vmm/vmm.h"
 #include <cudnn.h>
 #include <vector>
+#include <queue>
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -137,10 +138,12 @@ namespace network
       unsigned calculate_sub_batch();
       int get_total_memory_();
       unsigned getMemoryLowerBound_();
+      bool profile_subbatch_validity(unsigned batch_size);
       
       unsigned max_sub_batch_size_;
       unsigned sub_batch_size_; 
       unsigned max_allowed_bytes_;
+      unsigned weights_memory_bytes_;
       unsigned total_seqnet_bytes_;
       unsigned min_seqnet_bytes_;
   };

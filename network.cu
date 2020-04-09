@@ -22,10 +22,9 @@ seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std
   num_layers = specs.size();
   handle = cudnn;
   blas_handle = cublas;
-  max_allowed_bytes_ = max_allowed_bytes;
   this->lr = lr;
   for(int i=0;i<num_layers;i++)
-    {
+  {
       std::stringstream ss(specs[i]);
       std::vector<std::string> info;
       std::string tok;
@@ -33,7 +32,9 @@ seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std
         info.push_back(tok);
       }
       layer_info.push_back(info);
-    }
+  }
+  
+  max_allowed_bytes_ = max_allowed_bytes;
   max_sub_batch_size_ = atoi(layer_info[0][1].c_str());  
   min_seqnet_bytes_ = getMemoryLowerBound_();
   sub_batch_size_ = calculate_sub_batch();
@@ -104,8 +105,104 @@ unsigned seqNetwork::getMemoryLowerBound_() {
   return min_memory + weights_memory;
 }
 
+bool seqNetwork::profile_subbatch_validity(unsigned batch_size) {
+  make_nn_objs(batch_size);
+  int alphaT = ceil(0.15*2*num_layers);
+  std::queue<unsigned> window_layers_bytes;
+  unsigned running_window_bytes = weights_memory_bytes_; 
+  unsigned max_memory_requirement=0, temp, old_index_bytes;
+  int index;
+  bool is_already_present = false;
+  std::string buff_type;
+
+  std::cout << "alpha T : " << alphaT << std::endl; 
+  for(int i = 0; i < num_layers; i++) {
+    buff_type = layer_info[i][0];
+    temp=0;
+    if(buff_type=="input") {
+      temp = layer_buffer_bytes[i]["output"];  
+    } else if(buff_type=="conv"){
+      temp = layer_buffer_bytes[i]["workspace"] + layer_buffer_bytes[i]["output"];
+    } else if(buff_type=="fc") {
+      temp = layer_buffer_bytes[i]["output"];
+    } else if(buff_type == "softmax") {
+      temp = layer_buffer_bytes[i]["output"];
+    } else if(buff_type == "maxpool" || buff_type == "avgpool") {
+      temp = layer_buffer_bytes[i]["output"];
+    } else if(buff_type=="relu") {
+      temp = layer_buffer_bytes[i]["output"];
+    }
+
+    if (i <= alphaT) {
+      running_window_bytes += temp;
+    } else {
+      old_index_bytes = window_layers_bytes.front();
+      window_layers_bytes.pop();
+      running_window_bytes = running_window_bytes - old_index_bytes + temp;
+    }
+    if (running_window_bytes > max_memory_requirement) {
+      max_memory_requirement = running_window_bytes;
+    }
+    window_layers_bytes.push(temp);
+  }
+
+  // Backward Pass
+  for(int i = num_layers-1; i > 0; i--) {
+    temp=0;
+    buff_type = layer_info[i][0];
+    if (2*num_layers -1 - alphaT < 2*i) {
+      is_already_present = true;
+      std::cout << buff_type << " Is already present\n";
+    }
+    if(buff_type=="conv") {
+      temp = layer_buffer_bytes[i]["workspace"] +  layer_buffer_bytes[i]["dinput"]+ layer_buffer_bytes[i]["dparams"];
+    }
+    else if(buff_type=="fc") {
+      temp = layer_buffer_bytes[i]["dparams"]+layer_buffer_bytes[i]["dinput"]+ layer_buffer_bytes[i]["doutput"];
+    }
+    else if(buff_type == "softmax") {
+      temp = layer_buffer_bytes[0]["labels"]+layer_buffer_bytes[i]["dinput"];
+    }
+    else if(buff_type == "maxpool" || buff_type == "avgpool"){
+      temp =  layer_buffer_bytes[i]["dinput"];
+    }
+    else if(buff_type=="relu") {
+      temp = layer_buffer_bytes[i]["dinput"];
+    }
+    if (!is_already_present && buff_type != "softmax" ) {
+      temp += layer_buffer_bytes[i]["input"];
+    }
+
+    old_index_bytes = window_layers_bytes.front();
+    window_layers_bytes.pop();
+    running_window_bytes = running_window_bytes - old_index_bytes + temp;
+  
+    if (running_window_bytes > max_memory_requirement) {
+      max_memory_requirement = running_window_bytes;
+    }
+    window_layers_bytes.push(temp);
+    is_already_present = false;
+  }
+
+  std::cout << "Max memory requirement for batch_size : " << batch_size << " : " << max_memory_requirement << std::endl;
+  return (max_memory_requirement < max_allowed_bytes_);
+
+}
+
 unsigned seqNetwork::calculate_sub_batch() {
-  return max_sub_batch_size_;
+  unsigned lower = 1;
+  unsigned upper = max_sub_batch_size_;
+  unsigned index;
+  while (upper > lower) {
+    index = (upper + lower)/2 + (upper + lower)%2;
+    if (profile_subbatch_validity(index)) {
+      lower = index;
+    } else {
+      upper = index-1;
+    }
+  }
+  std::cout << "Profiled Subbatch size : " << lower << std::endl;
+  return lower;
 }
 
 void seqNetwork::print_network_info()
@@ -177,7 +274,7 @@ void seqNetwork::make_nn_objs(unsigned sub_batch_size)
   int vertical_stride, horizontal_stride;
   padding_type pad;
   cudnnPoolingMode_t pooling_type;
-
+  weights_memory_bytes_ = 0;
   //std::cout << "Allocating memory for the Neural Network" << std::endl;
   layer_buffers.resize(num_layers);
   layer_offloaded_buffers.resize(num_layers);
@@ -254,6 +351,7 @@ void seqNetwork::make_nn_objs(unsigned sub_batch_size)
       layer_buffer_bytes[i]["dparams"] = layer_buffer_bytes[i]["params"];
       layer_buffer_bytes[i]["workspace"] = new_conv -> get_total_workspace_size();
 
+      weights_memory_bytes_ += layer_buffer_bytes[i]["params"];
     }
     else if(layer_type == "flatten")
     {
@@ -307,6 +405,8 @@ void seqNetwork::make_nn_objs(unsigned sub_batch_size)
       layer_buffer_bytes[i]["params"] = new_fc -> get_params_shape_and_bytes(shape);
       layer_buffer_bytes[i]["dparams"] = new_fc -> get_params_shape_and_bytes(shape);
 
+      weights_memory_bytes_ += layer_buffer_bytes[i]["params"];
+      
       layer_objects.push_back(new_fc);
 
     }
