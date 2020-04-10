@@ -60,8 +60,8 @@ int main(int argc, const char* argv[])
     char * label_file = (char*)label_file_str.c_str();
     std::cout << images_file << " "<<label_file << std::endl;
     float* data_batch, *label_batch;
-    unsigned batch_size = 32,rows;
-    unsigned dataset_size;
+    unsigned batch_size = 32,rows, sub_batch_size;
+    unsigned dataset_size, offset;
 
     std::cout << "Creating Dataset" << std::endl;
     Dataset* dataset= new MNIST(images_file, label_file, true);
@@ -77,6 +77,8 @@ int main(int argc, const char* argv[])
 
     std::vector<std::string> specs = {input_spec,"conv 3 3 3","relu","maxpool 2 2 2 2","flatten","fc 50","relu","fc "+std::to_string(dataset->getLabelDim()),"softmax"};
     seqNetwork nn = seqNetwork(cudnn,cublas,specs,LR, 900000);
+    sub_batch_size = nn.sub_batch_size();
+    offset = ((batch_size/sub_batch_size)-1)*sub_batch_size;
 
     vmm * mem_manager = new vmm(nn.get_total_memory()+20);
     nn.allocate_all_memory(mem_manager);
@@ -132,8 +134,7 @@ int main(int argc, const char* argv[])
         if(j%10==0)
         {
           output = nn.offload_buffer(nn.num_layers-1,"output",shape);
-
-          loss += categorical_cross_entropy_loss(output,shape,label_batch_integer);
+          loss += categorical_cross_entropy_loss(output,shape,label_batch_integer+offset);
         }
 
       }

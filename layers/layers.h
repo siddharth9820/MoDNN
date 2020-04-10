@@ -129,6 +129,7 @@ namespace network
       float* offload_buffer(int layer_number,std::string type,int shape[]); //type is one of "output","workspace","input"
       void prefetch_buffer(int layer_number,std::string type);
       unsigned getMemoryLowerBound();
+      unsigned sub_batch_size();
       ~seqNetwork();
 
     private:

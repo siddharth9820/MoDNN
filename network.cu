@@ -105,6 +105,10 @@ unsigned seqNetwork::getMemoryLowerBound_() {
   return min_memory + weights_memory;
 }
 
+unsigned seqNetwork::sub_batch_size() {
+  return sub_batch_size_;
+}
+
 bool seqNetwork::profile_subbatch_validity(unsigned batch_size) {
   make_nn_objs(batch_size);
   int alphaT = ceil(0.15*2*num_layers);
@@ -575,9 +579,10 @@ void seqNetwork::train() {
   ((InputLayer*)layer_objects[0])->update_batch((batch_data_), (float*)(batch_labels_),layer_buffers[0]["output"],layer_buffers[0]["labels"]);
   forward_();
   backward_(0.0);
-
   for (int i = 1; i < loops; i++) {
-    ((InputLayer*)layer_objects[0])->update_batch((batch_data_ + i*offset), (float*)(batch_labels_+i*sub_batch_size_),layer_buffers[0]["output"],layer_buffers[0]["labels"]);
+    batch_data_ = batch_data_ + i*(sub_batch_size_*rows*columns);
+    batch_labels_ = batch_labels_ + i*(sub_batch_size_);
+    ((InputLayer*)layer_objects[0])->update_batch((batch_data_), (float*)(batch_labels_),layer_buffers[0]["output"],layer_buffers[0]["labels"]);
     forward_();
     backward_(1.0);
   }
