@@ -272,7 +272,7 @@ int seqNetwork::get_total_memory_()
       it++;
     }
   }
-  std::cout << total_bytes << std::endl;
+  std::cout << "Total memory of network : " << total_bytes << std::endl;
   return total_bytes;
 
 }
@@ -571,18 +571,13 @@ void seqNetwork::train() {
   int shape[4];
   ((InputLayer*)layer_objects[0]) -> get_output_shape_and_bytes(shape);
   int offset = shape[0]*shape[1]*shape[2]*shape[3];
-  int batch_size = shape[0];
-  int rows = shape[1];
-  int columns = shape[2];
-  int channels = shape[3];
-
+ 
   ((InputLayer*)layer_objects[0])->update_batch((batch_data_), (float*)(batch_labels_),layer_buffers[0]["output"],layer_buffers[0]["labels"]);
   forward_();
   backward_(0.0);
+
   for (int i = 1; i < loops; i++) {
-    batch_data_ = batch_data_ + i*(sub_batch_size_*rows*columns);
-    batch_labels_ = batch_labels_ + i*(sub_batch_size_);
-    ((InputLayer*)layer_objects[0])->update_batch((batch_data_), (float*)(batch_labels_),layer_buffers[0]["output"],layer_buffers[0]["labels"]);
+    ((InputLayer*)layer_objects[0])->update_batch((batch_data_ + i*(offset)), (float*)(batch_labels_+i*sub_batch_size_),layer_buffers[0]["output"],layer_buffers[0]["labels"]);
     forward_();
     backward_(1.0);
   }
@@ -853,8 +848,8 @@ void seqNetwork::allocate_all_memory(vmm * mem_manager)
     {
       buff_type = it->first;
       buff_bytes = it->second;
-      total_bytes += buff_bytes;
       if ((buff_type != "input" && buff_type != "dinput")){
+        total_bytes += buff_bytes;
       //std::cout << buff_type << " " << buff_bytes << std::endl;
         mem_manager->allocate(&layer_buffers[i][buff_type],buff_bytes);
       }
