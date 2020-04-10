@@ -76,7 +76,7 @@ int main(int argc, const char* argv[])
 
 
     std::vector<std::string> specs = {input_spec,"conv 3 3 3","relu","maxpool 2 2 2 2","flatten","fc 50","relu","fc "+std::to_string(dataset->getLabelDim()),"softmax"};
-    seqNetwork nn = seqNetwork(cudnn,cublas,specs,LR, 400000);
+    seqNetwork nn = seqNetwork(cudnn,cublas,specs,LR, 900000);
 
     vmm * mem_manager = new vmm(nn.get_total_memory()+20);
     nn.allocate_all_memory(mem_manager);
@@ -125,8 +125,9 @@ int main(int argc, const char* argv[])
 
 
         nn.update_batch(data_batch, label_batch_integer);
-        nn.forward();
-        nn.backward();
+        // nn.forward();
+        // nn.backward();
+        nn.train();
         nn.update_weights();
         if(j%10==0)
         {

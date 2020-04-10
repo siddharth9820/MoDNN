@@ -120,6 +120,7 @@ namespace network
       void randomise_params();
       void forward();
       void backward();
+      void train();
       void update_weights();
 
       int get_total_memory();
@@ -146,6 +147,8 @@ namespace network
       unsigned weights_memory_bytes_;
       unsigned total_seqnet_bytes_;
       unsigned min_seqnet_bytes_;
+      float* batch_data_;
+      int* batch_labels_;
   };
 }
 

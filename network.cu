@@ -289,7 +289,7 @@ void seqNetwork::make_nn_objs(unsigned sub_batch_size)
   layer_offloaded_buffers.resize(num_layers);
   layer_buffer_bytes.resize(num_layers);
   layer_objects.clear();
-  
+
   for(int i=0;i<num_layers;i++)
   {
     layer_type = layer_info[i][0];
@@ -543,7 +543,8 @@ void seqNetwork::randomise_batch()
 
 void seqNetwork::update_batch(float* data, int* labels)
 {
-  ((InputLayer*)layer_objects[0])->update_batch(data, (float*)labels,layer_buffers[0]["output"],layer_buffers[0]["labels"]);
+  batch_data_ = data;
+  batch_labels_ = labels;
 }
 
 void seqNetwork::randomise_params()
@@ -561,9 +562,34 @@ void seqNetwork::randomise_params()
   }
 }
 
+void seqNetwork::train() {
+  int loops = max_sub_batch_size_/sub_batch_size_;
+  int shape[4];
+  ((InputLayer*)layer_objects[0]) -> get_output_shape_and_bytes(shape);
+  int offset = shape[0]*shape[1]*shape[2]*shape[3];
+  int batch_size = shape[0];
+  int rows = shape[1];
+  int columns = shape[2];
+  int channels = shape[3];
+
+  ((InputLayer*)layer_objects[0])->update_batch((batch_data_), (float*)(batch_labels_),layer_buffers[0]["output"],layer_buffers[0]["labels"]);
+  forward_();
+  backward_(0.0);
+
+  for (int i = 1; i < loops; i++) {
+    ((InputLayer*)layer_objects[0])->update_batch((batch_data_ + i*offset), (float*)(batch_labels_+i*sub_batch_size_),layer_buffers[0]["output"],layer_buffers[0]["labels"]);
+    forward_();
+    backward_(1.0);
+  }
+}
+
 void seqNetwork::forward() {
   int loops = max_sub_batch_size_/sub_batch_size_;
+  int shape[4];
+  ((InputLayer*)layer_objects[0]) -> get_output_shape_and_bytes(shape);
+  int offset = shape[0]*shape[1]*shape[2]*shape[3];
   for (int i = 0; i < loops; i++) {
+    ((InputLayer*)layer_objects[0])->update_batch((batch_data_ + i*offset), (float*)(batch_labels_+i*sub_batch_size_),layer_buffers[0]["output"],layer_buffers[0]["labels"]);
     forward_();
   }
 }
