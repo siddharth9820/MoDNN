@@ -99,6 +99,7 @@ namespace network
     public:
       int num_layers;
       float lr;
+      int batch_size;
       std::vector<std::vector<std::string > > layer_info;
       std::vector<std::map<std::string,float*> > layer_buffers;
       std::vector<std::map<std::string,float*> > layer_offloaded_buffers;
@@ -141,9 +142,9 @@ namespace network
       int get_total_memory_();
       unsigned getMemoryLowerBound_();
       bool profile_subbatch_validity(unsigned batch_size);
-      
+
       unsigned max_sub_batch_size_;
-      unsigned sub_batch_size_; 
+      unsigned sub_batch_size_;
       unsigned max_allowed_bytes_;
       unsigned weights_memory_bytes_;
       unsigned total_seqnet_bytes_;

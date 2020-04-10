@@ -33,9 +33,9 @@ seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std
       }
       layer_info.push_back(info);
   }
-  
+
   max_allowed_bytes_ = max_allowed_bytes;
-  max_sub_batch_size_ = atoi(layer_info[0][1].c_str());  
+  max_sub_batch_size_ = atoi(layer_info[0][1].c_str());
   min_seqnet_bytes_ = getMemoryLowerBound_();
   sub_batch_size_ = calculate_sub_batch();
   make_nn_objs(sub_batch_size_);
@@ -55,11 +55,11 @@ unsigned seqNetwork::getMemoryLowerBound_() {
   int min_memory = 0;
   int weights_memory = 0;
   for(int i=0;i<num_layers;i++)
-  {  
+  {
     buff_type = layer_info[i][0];
     fw_bytes = bw_bytes = 0;
     std::cout << layer_info[i][0] << std::endl;
-    
+
     if(buff_type=="input") {
       fw_bytes += layer_buffer_bytes[i]["output"];
       bw_bytes += layer_buffer_bytes[i]["doutput"];
@@ -92,7 +92,7 @@ unsigned seqNetwork::getMemoryLowerBound_() {
     }
 
     std::cout << buff_type << " fw_bytes :  " << fw_bytes << " bw_bytes :  "<< bw_bytes << std::endl;
-    
+
     if (fw_bytes > min_memory) {
       min_memory = fw_bytes;
     }
@@ -113,18 +113,18 @@ bool seqNetwork::profile_subbatch_validity(unsigned batch_size) {
   make_nn_objs(batch_size);
   int alphaT = ceil(0.15*2*num_layers);
   std::queue<unsigned> window_layers_bytes;
-  unsigned running_window_bytes = weights_memory_bytes_; 
+  unsigned running_window_bytes = weights_memory_bytes_;
   unsigned max_memory_requirement=0, temp, old_index_bytes;
   int index;
   bool is_already_present = false;
   std::string buff_type;
 
-  std::cout << "alpha T : " << alphaT << std::endl; 
+  std::cout << "alpha T : " << alphaT << std::endl;
   for(int i = 0; i < num_layers; i++) {
     buff_type = layer_info[i][0];
     temp=0;
     if(buff_type=="input") {
-      temp = layer_buffer_bytes[i]["output"];  
+      temp = layer_buffer_bytes[i]["output"];
     } else if(buff_type=="conv"){
       temp = layer_buffer_bytes[i]["workspace"] + layer_buffer_bytes[i]["output"];
     } else if(buff_type=="fc") {
@@ -180,7 +180,7 @@ bool seqNetwork::profile_subbatch_validity(unsigned batch_size) {
     old_index_bytes = window_layers_bytes.front();
     window_layers_bytes.pop();
     running_window_bytes = running_window_bytes - old_index_bytes + temp;
-  
+
     if (running_window_bytes > max_memory_requirement) {
       max_memory_requirement = running_window_bytes;
     }
@@ -307,7 +307,7 @@ void seqNetwork::make_nn_objs(unsigned sub_batch_size)
       columns = atoi(layer_info[i][3].c_str());
       channels = atoi(layer_info[i][4].c_str());
       num_classes = atoi(layer_info[i][5].c_str());
-
+      this->batch_size = batch_size;
       std::cout << "Setting up input layer - "<< batch_size <<" " << rows << " "<<columns <<" "<<channels << std::endl;
 
       InputLayer * new_ip = new InputLayer(batch_size,rows,columns,channels,num_classes);
@@ -315,7 +315,7 @@ void seqNetwork::make_nn_objs(unsigned sub_batch_size)
 
       bytes = new_ip->get_output_shape_and_bytes(shape);
       //layer_buffers[i] = init_buffer_map();
-      
+
 
       layer_buffer_bytes[i]["output"]=bytes;//cudaMalloc(&(layer_buffers[i]["output"]),bytes);
       layer_buffer_bytes[i]["doutput"]=bytes;//cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
@@ -420,7 +420,7 @@ void seqNetwork::make_nn_objs(unsigned sub_batch_size)
       layer_buffer_bytes[i]["dparams"] = new_fc -> get_params_shape_and_bytes(shape);
 
       weights_memory_bytes_ += layer_buffer_bytes[i]["params"];
-      
+
       layer_objects.push_back(new_fc);
 
     }
@@ -513,10 +513,10 @@ void seqNetwork::make_nn_objs(unsigned sub_batch_size)
 
       layer_buffer_bytes[i]["output"]=bytes;//cudaMalloc(&(layer_buffers[i]["output"]),bytes);
       layer_buffer_bytes[i]["doutput"]=bytes;//cudaMalloc(&(layer_buffers[i]["output"]),bytes);
-      
-      layer_buffer_bytes[i]["dinput"] = layer_buffer_bytes[i-1]["doutput"]; 
+
+      layer_buffer_bytes[i]["dinput"] = layer_buffer_bytes[i-1]["doutput"];
       layer_buffer_bytes[i]["input"] = layer_buffer_bytes[i-1]["output"];
-      
+
       layer_objects.push_back(new_pooling);
     }
 
@@ -700,7 +700,7 @@ void seqNetwork::update_weights() {
       FCLayer * layer_obj = (FCLayer*)(layer_objects[i]);
       layer_obj -> update_weights( buffer_map["params"],buffer_map["dparams"],lr);
     }
-    
+
   }
 }
 
