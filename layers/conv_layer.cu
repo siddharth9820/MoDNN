@@ -221,8 +221,8 @@ void ConvLayer::update_weights(float* d_kernel, float* d_dkernel, float lr) {
 }
   
 void ConvLayer::backward(float alpha,
-  float beta,
-  float* d_y,
+  float beta_filter,
+  float beta_data,
   float* d_dy,
   void* d_workspace,
   float* d_kernel,
@@ -241,7 +241,7 @@ void ConvLayer::backward(float alpha,
     data_algo,
     d_workspace,
     backward_workspace_bytes,
-    &beta,
+    &beta_data,
     input_descriptor,
     d_dx
   ));
@@ -256,7 +256,7 @@ void ConvLayer::backward(float alpha,
     filter_algo,
     d_workspace,
     backward_workspace_bytes,
-    &beta,
+    &beta_filter,
     kernel_descriptor,
     d_dkernel
   ));

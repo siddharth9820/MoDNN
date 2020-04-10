@@ -4,6 +4,7 @@
 #include "../vmm/vmm.h"
 #include <cudnn.h>
 #include <vector>
+#include <queue>
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -99,6 +100,7 @@ namespace network
       int num_layers;
       int batch_size;
       float lr;
+      int batch_size;
       std::vector<std::vector<std::string > > layer_info;
       std::vector<std::map<std::string,float*> > layer_buffers;
       std::vector<std::map<std::string,float*> > layer_offloaded_buffers;
@@ -110,7 +112,7 @@ namespace network
       cublasHandle_t blas_handle;
 
 
-      seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std::string> &specs, float lr);
+      seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std::string> &specs, float lr, unsigned max_allowed_bytes);
       void print_network_info();
 
       void get_output_shape(int shape[], int i);
@@ -120,11 +122,15 @@ namespace network
       void randomise_params();
       void forward();
       void backward();
+      void train();
       void update_weights();
 
       int get_total_memory();
       void allocate_all_memory(vmm * mem_manager);
 
+      
+      unsigned getMemoryLowerBound();
+      unsigned sub_batch_size();
       void link_layer_buffer(int layer_number);
 
 
@@ -135,8 +141,23 @@ namespace network
       ~seqNetwork();
 
     private:
-      void make_nn_objs();
+      void forward_();
+      void backward_(float beta);
+      void make_nn_objs(unsigned sub_batch_size);
       void link_all_buffers();
+      unsigned calculate_sub_batch();
+      int get_total_memory_();
+      unsigned getMemoryLowerBound_();
+      bool profile_subbatch_validity(unsigned batch_size);
+
+      unsigned max_sub_batch_size_;
+      unsigned sub_batch_size_;
+      unsigned max_allowed_bytes_;
+      unsigned weights_memory_bytes_;
+      unsigned total_seqnet_bytes_;
+      unsigned min_seqnet_bytes_;
+      float* batch_data_;
+      int* batch_labels_;
   };
 }
 
