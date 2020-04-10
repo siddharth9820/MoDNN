@@ -192,7 +192,7 @@ bool seqNetwork::profile_subbatch_validity(unsigned batch_size) {
 unsigned seqNetwork::calculate_sub_batch() {
   unsigned lower = 1;
   unsigned upper = max_sub_batch_size_;
-  unsigned index;
+  unsigned index, power_count = 0, result = 1;
   while (upper > lower) {
     index = (upper + lower)/2 + (upper + lower)%2;
     if (profile_subbatch_validity(index)) {
@@ -202,7 +202,16 @@ unsigned seqNetwork::calculate_sub_batch() {
     }
   }
   std::cout << "Profiled Subbatch size : " << lower << std::endl;
-  return lower;
+
+  // Regularization
+  while(lower != 1) {
+    lower = lower >> 1;
+    result = result << 1;
+  }
+
+  std::cout << "Profiled Subbatch size (regularized): " << result << std::endl;
+
+  return result;
 }
 
 void seqNetwork::print_network_info()
@@ -279,7 +288,8 @@ void seqNetwork::make_nn_objs(unsigned sub_batch_size)
   layer_buffers.resize(num_layers);
   layer_offloaded_buffers.resize(num_layers);
   layer_buffer_bytes.resize(num_layers);
-
+  layer_objects.clear();
+  
   for(int i=0;i<num_layers;i++)
   {
     layer_type = layer_info[i][0];
