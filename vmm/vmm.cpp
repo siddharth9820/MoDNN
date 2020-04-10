@@ -81,7 +81,7 @@ void vmm::defragmentMem()
   printNodes();
 }
 
-allocstatus_t vmm::allocate(float** ptr,int bytes){
+allocstatus_t vmm::allocate(float** ptr,int bytes, std::string misc){
   if(bytes==0)
   {
     *ptr = NULL;
@@ -96,7 +96,7 @@ allocstatus_t vmm::allocate(float** ptr,int bytes){
 
   defragmentMemSimple(); //join contiguous free blocks
 
-  *ptr = allocateHelper(ptr,bytes);
+  *ptr = allocateHelper(ptr,bytes,misc);
 
   if(*ptr!=NULL){
     return VMM_SUCCESS;
@@ -104,7 +104,7 @@ allocstatus_t vmm::allocate(float** ptr,int bytes){
 
   defragmentMem();
 
-  *ptr = allocateHelper(ptr,bytes);
+  *ptr = allocateHelper(ptr,bytes,misc);
 
   if(*ptr!=NULL){
     return DEFRAG_SUCCESS;
@@ -114,7 +114,7 @@ allocstatus_t vmm::allocate(float** ptr,int bytes){
   return INSUFF_MEM;
 }
 
-float* vmm::allocateHelper(float** ptr,int bytes)
+float* vmm::allocateHelper(float** ptr,int bytes, std::string misc)
 {
   struct memoryNode* iterator = head;
 
@@ -124,6 +124,7 @@ float* vmm::allocateHelper(float** ptr,int bytes)
         *ptr = iterator->startAddrCuda;
         iterator->accessPointer = ptr;
         iterator->isFree = false;
+        iterator->misc = misc;
         this->freeSize-=bytes;
         return *ptr;
       }else if(iterator->size>bytes){
@@ -140,6 +141,7 @@ float* vmm::allocateHelper(float** ptr,int bytes)
         iterator->size = bytes;
         temp->next = iterator->next;
         iterator->next = temp;
+        iterator -> misc = misc;
         this->freeSize-=bytes;
         return *ptr;
       }
@@ -171,7 +173,7 @@ void vmm::printNodes(){
   struct memoryNode* iterator = head;
   std::cout<<"\n\n ====== Memory Status =======\n";
   while(iterator){
-    std::cout<<"Size: "<<iterator->size<<"\tFree: "<<iterator->isFree<<"\tCuda Address: "<<iterator->startAddrCuda<<"\tAccess Pointer: "<<(iterator->accessPointer==NULL?NULL:(iterator->accessPointer))<<std::endl;
+    std::cout<<"Size: "<<iterator->size<<"\tFree: "<<iterator->isFree<<"\tCuda Address: "<<iterator->startAddrCuda<<"\tAccess Pointer: "<<(iterator->accessPointer==NULL?NULL:(iterator->accessPointer))<<"\tMISC - " << iterator -> misc <<std::endl;
     iterator = iterator->next;
   }
   std::cout<<" ============================\n\n";

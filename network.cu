@@ -120,6 +120,7 @@ void seqNetwork::make_nn_objs()
       columns = atoi(layer_info[i][3].c_str());
       channels = atoi(layer_info[i][4].c_str());
       num_classes = atoi(layer_info[i][5].c_str());
+      this->batch_size = batch_size;
 
       std::cout << "Setting up input layer - "<< batch_size <<" " << rows << " "<<columns <<" "<<channels << std::endl;
 
@@ -128,7 +129,7 @@ void seqNetwork::make_nn_objs()
 
       bytes = new_ip->get_output_shape_and_bytes(shape);
       //layer_buffers[i] = init_buffer_map();
-      
+
 
       layer_buffer_bytes[i]["output"]=bytes;//cudaMalloc(&(layer_buffers[i]["output"]),bytes);
       layer_buffer_bytes[i]["doutput"]=bytes;//cudaMalloc(&(layer_buffers[i]["doutput"]),bytes);
@@ -468,7 +469,7 @@ void seqNetwork::update_weights() {
       FCLayer * layer_obj = (FCLayer*)(layer_objects[i]);
       layer_obj -> update_weights( buffer_map["params"],buffer_map["dparams"],lr);
     }
-    
+
   }
 }
 
@@ -630,6 +631,53 @@ void seqNetwork::allocate_all_memory(vmm * mem_manager)
   std::cout << total_bytes << std::endl;
   link_all_buffers();
 }
+
+void seqNetwork::allocate_mem_params(vmm * mem_manager)
+{
+  int bytes;
+  for(int i=0;i<num_layers;i++)
+  {
+    if(layer_info[i][0] == "conv" || layer_info[i][0] == "fc")
+    {
+      bytes = layer_buffer_bytes[i]["params"];
+      mem_manager->allocate(&layer_buffers[i]["params"],bytes,layer_info[i][0]+" params");
+
+      bytes = layer_buffer_bytes[i]["dparams"];
+      mem_manager->allocate(&layer_buffers[i]["dparams"],bytes,layer_info[i][0]+" dparams");
+
+    }
+  }
+}
+
+void seqNetwork::allocate_mem_layer(int layer_number, vmm * mem_manager)
+{
+  int i = layer_number,bytes;
+
+  if(layer_info[i][0]!="flatten"){
+    assert(layer_buffers[i]["output"] == nullptr);
+    bytes = layer_buffer_bytes[i]["output"];
+    mem_manager->allocate(&layer_buffers[i]["output"],bytes,layer_info[i][0]+" layer - output");
+  }
+
+  if(layer_info[i][0] == "input")
+  {
+    //allocate labels memory
+    assert(layer_buffers[i]["labels"] == nullptr);
+    bytes = layer_buffer_bytes[i]["labels"];
+    mem_manager->allocate(&layer_buffers[i]["labels"],bytes,"input layer - labels");
+  }
+
+}
+
+void seqNetwork::link_layer_buffer(int layer_number)
+{
+  int i = layer_number;
+  if(i < num_layers-1)
+  {
+    layer_buffers[i+1]["input"] = layer_buffers[i]["output"];
+  }
+}
+
 
 seqNetwork::~seqNetwork()
 {
