@@ -98,6 +98,7 @@ namespace network
   {
     public:
       int num_layers;
+      int batch_size;
       float lr;
       int batch_size;
       std::vector<std::vector<std::string > > layer_info;
@@ -127,10 +128,16 @@ namespace network
       int get_total_memory();
       void allocate_all_memory(vmm * mem_manager);
 
-      float* offload_buffer(int layer_number,std::string type,int shape[]); //type is one of "output","workspace","input"
-      void prefetch_buffer(int layer_number,std::string type);
+      
       unsigned getMemoryLowerBound();
       unsigned sub_batch_size();
+      void link_layer_buffer(int layer_number);
+
+
+      float* offload_buffer(int layer_number,std::string type,int shape[]); //type is one of "output","workspace","input"
+      void prefetch_buffer(int layer_number,std::string type);
+      void allocate_mem_layer(int layer_number, vmm * mem_manager);
+      void allocate_mem_params(vmm * mem_manager);
       ~seqNetwork();
 
     private:

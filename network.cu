@@ -308,6 +308,7 @@ void seqNetwork::make_nn_objs(unsigned sub_batch_size)
       channels = atoi(layer_info[i][4].c_str());
       num_classes = atoi(layer_info[i][5].c_str());
       this->batch_size = batch_size;
+
       std::cout << "Setting up input layer - "<< batch_size <<" " << rows << " "<<columns <<" "<<channels << std::endl;
 
       InputLayer * new_ip = new InputLayer(batch_size,rows,columns,channels,num_classes);
@@ -859,6 +860,53 @@ void seqNetwork::allocate_all_memory(vmm * mem_manager)
   std::cout << total_bytes << std::endl;
   link_all_buffers();
 }
+
+void seqNetwork::allocate_mem_params(vmm * mem_manager)
+{
+  int bytes;
+  for(int i=0;i<num_layers;i++)
+  {
+    if(layer_info[i][0] == "conv" || layer_info[i][0] == "fc")
+    {
+      bytes = layer_buffer_bytes[i]["params"];
+      mem_manager->allocate(&layer_buffers[i]["params"],bytes,layer_info[i][0]+" params");
+
+      bytes = layer_buffer_bytes[i]["dparams"];
+      mem_manager->allocate(&layer_buffers[i]["dparams"],bytes,layer_info[i][0]+" dparams");
+
+    }
+  }
+}
+
+void seqNetwork::allocate_mem_layer(int layer_number, vmm * mem_manager)
+{
+  int i = layer_number,bytes;
+
+  if(layer_info[i][0]!="flatten"){
+    assert(layer_buffers[i]["output"] == nullptr);
+    bytes = layer_buffer_bytes[i]["output"];
+    mem_manager->allocate(&layer_buffers[i]["output"],bytes,layer_info[i][0]+" layer - output");
+  }
+
+  if(layer_info[i][0] == "input")
+  {
+    //allocate labels memory
+    assert(layer_buffers[i]["labels"] == nullptr);
+    bytes = layer_buffer_bytes[i]["labels"];
+    mem_manager->allocate(&layer_buffers[i]["labels"],bytes,"input layer - labels");
+  }
+
+}
+
+void seqNetwork::link_layer_buffer(int layer_number)
+{
+  int i = layer_number;
+  if(i < num_layers-1)
+  {
+    layer_buffers[i+1]["input"] = layer_buffers[i]["output"];
+  }
+}
+
 
 seqNetwork::~seqNetwork()
 {
