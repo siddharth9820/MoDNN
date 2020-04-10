@@ -22,7 +22,7 @@ void vmm::defragmentMemSimple(){
   struct memoryNode* temp;
 
   while(iterator){
-    if(iterator->isFree and iterator->next and iterator->next->isFree){
+    if(iterator->isFree && iterator->next && iterator->next->isFree){
       iterator->size+=iterator->next->size;
       temp = iterator->next;
       iterator->next = iterator->next->next;
@@ -43,7 +43,7 @@ void vmm::defragmentMem()
 
   while(iterator){
 
-    if(iterator->next and iterator->isFree and !iterator->next->isFree){
+    if(iterator->next && iterator->isFree && !iterator->next->isFree){
     // swap the contents to push the free block to one side
 
       // this method needs to be replaced with the equivalent CUDA memory move method
@@ -67,7 +67,7 @@ void vmm::defragmentMem()
       iterator->next->accessPointer = NULL;
       iterator = iterator->next;
 
-    }else if(iterator->next and iterator->isFree and iterator->next->isFree){
+    }else if(iterator->next && iterator->isFree && iterator->next->isFree){
     // merge the free blocks
       iterator->size+=iterator->next->size;
       temp = iterator->next;
