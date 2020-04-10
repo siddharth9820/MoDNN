@@ -6,6 +6,9 @@ void train_with_minimal_memory(DataLoader * dataloader,Dataset * dataset,seqNetw
   float* data_batch, *label_batch;
   int* label_batch_integer = (int*)malloc(sizeof(int)*batch_size);
 
+  int sub_batch_size = nn->sub_batch_size();
+  int offset = ((batch_size/sub_batch_size)-1)*sub_batch_size;
+  
   //nn->allocate_all_memory(mem_manager);
   mem_manager->printNodes();
   nn->print_network_info();

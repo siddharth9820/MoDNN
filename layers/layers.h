@@ -98,7 +98,6 @@ namespace network
   {
     public:
       int num_layers;
-      int batch_size;
       float lr;
       int batch_size;
       std::vector<std::vector<std::string > > layer_info;
@@ -128,7 +127,7 @@ namespace network
       int get_total_memory();
       void allocate_all_memory(vmm * mem_manager);
 
-      
+
       unsigned getMemoryLowerBound();
       unsigned sub_batch_size();
       void link_layer_buffer(int layer_number);

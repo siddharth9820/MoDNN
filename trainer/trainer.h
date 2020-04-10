@@ -1,7 +1,7 @@
 #ifndef TRAINER_H_
 #define TRAINER_H_
 
-#define PRINT_EVERY 5
+#define PRINT_EVERY 1
 
 #include "../layers/layers.h"
 #include "../mnist_dataset/mnist.h"

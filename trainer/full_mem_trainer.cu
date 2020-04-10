@@ -6,6 +6,10 @@ void train_with_full_memory(DataLoader * dataloader,Dataset * dataset,seqNetwork
   float* data_batch, *label_batch;
   int* label_batch_integer = (int*)malloc(sizeof(int)*batch_size);
 
+  int sub_batch_size = nn->sub_batch_size();
+  int offset = ((batch_size/sub_batch_size)-1)*sub_batch_size;
+
+
   nn->allocate_all_memory(mem_manager);
   mem_manager->printNodes();
   nn->print_network_info();
@@ -51,14 +55,14 @@ void train_with_full_memory(DataLoader * dataloader,Dataset * dataset,seqNetwork
 
 
       nn->update_batch(data_batch, label_batch_integer);
-      nn->forward();
-      nn->backward();
+      //nn->forward();
+      //nn->backward();
+      nn->train();
       nn->update_weights();
       if(j%PRINT_EVERY==0)
       {
         output = nn->offload_buffer(nn->num_layers-1,"output",shape);
-
-        loss += categorical_cross_entropy_loss(output,shape,label_batch_integer);
+        loss += categorical_cross_entropy_loss(output,shape,label_batch_integer+offset);
       }
 
     }
