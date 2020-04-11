@@ -28,6 +28,7 @@ class PoolingLayer : public layers::Layer {
 		void forward(float alpha, float beta, float* d_input, float* d_output);
 		void backward(float alpha, float beta, float* d_y, float* d_dy, float* d_x, float* d_dx);
 		int get_output_shape_and_bytes(int shape[]);
+		int get_input_shape_and_bytes(int shape[]);
 		int get_total_memory();
 		~PoolingLayer();
 	};

@@ -112,6 +112,14 @@ int PoolingLayer::get_output_shape_and_bytes(int shape[]) {
     return sizeof(float)*obatch_size*ochannels*oheight*owidth;
 }
 
+int PoolingLayer::get_input_shape_and_bytes(int shape[]) {
+    shape[0] = obatch_size;
+    shape[1] = iheight;
+    shape[2] = iwidth;
+    shape[3] = ichannels;
+    return sizeof(float)*obatch_size*ichannels*iheight*iwidth;
+}
+
 int PoolingLayer::get_total_memory()
 {
   int shape[4];

@@ -104,6 +104,7 @@ namespace network
       std::vector<std::map<std::string,float*> > layer_buffers;
       std::vector<std::map<std::string,float*> > layer_offloaded_buffers;
       std::vector<std::map<std::string,int> > layer_buffer_bytes;
+      std::vector<std::map<std::string,int> > layer_buffer_redundant_bytes;
       std::vector< layers::Layer *> layer_objects;
 
 
@@ -127,10 +128,20 @@ namespace network
       int get_total_memory();
       void allocate_all_memory(vmm * mem_manager);
 
-      float* offload_buffer(int layer_number,std::string type,int shape[]); //type is one of "output","workspace","input"
-      void prefetch_buffer(int layer_number,std::string type);
+
       unsigned getMemoryLowerBound();
       unsigned sub_batch_size();
+      void link_layer_buffer_fw(int layer_number);
+      void link_layer_buffer_bw(int layer_number);
+
+
+      float* offload_buffer(int layer_number,std::string type,int shape[]); //type is one of "output","workspace","input"
+      void prefetch_buffer(int layer_number,std::string type);
+      void allocate_mem_layer_fw(int layer_number, vmm * mem_manager);
+      void allocate_mem_layer_bw(int layer_number, vmm * mem_manager);
+      void allocate_mem_params(vmm * mem_manager);
+
+
       ~seqNetwork();
 
     private:

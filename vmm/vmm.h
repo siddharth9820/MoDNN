@@ -15,7 +15,8 @@ struct memoryNode{
 	float** accessPointer;
 	unsigned long long int size;   // size of the block in the GPU memory
 	bool isFree;				  // stores if the node is free or not
-	struct memoryNode* next;
+  std::string misc;     //stores misc info
+  struct memoryNode* next;
 	memoryNode(){
     next = NULL;
   }
@@ -47,7 +48,7 @@ class vmm{
   private:
     int freeSize;
     struct memoryNode* head;
-    float* allocateHelper(float** ptr,int bytes);
+    float* allocateHelper(float** ptr,int bytes,std::string misc);
 
   public:
 		vmm(int bytes);
@@ -55,7 +56,7 @@ class vmm{
 		void defragmentMemSimple();
 		// this method moves all free blocks in the end and combines them into a single contiguous block
 		void defragmentMem();
-		allocstatus_t allocate(float** ptr,int bytes);
+		allocstatus_t allocate(float** ptr,int bytes,std::string misc = "None");
 		void deleteMem(float* ptr);
 		void printNodes();
     ~vmm();
