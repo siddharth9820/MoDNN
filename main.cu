@@ -48,9 +48,11 @@ int main(int argc, const char* argv[])
 
 
     std::vector<std::string> specs = {input_spec,"flatten","fc "+std::to_string(dataset->getLabelDim()),"softmax"};
-    seqNetwork * nn = new seqNetwork(cudnn,cublas,specs,LR,268692);
+    seqNetwork * nn = new seqNetwork(cudnn,cublas,specs,LR,500000);
 
     vmm * mem_manager = new vmm(nn->get_total_memory()+20);
+
+
 
     train_with_minimal_memory(dataloader,dataset,nn, mem_manager,10);
 
