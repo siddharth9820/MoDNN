@@ -618,9 +618,7 @@ void seqNetwork::train() {
 
   ((InputLayer*)layer_objects[0])->update_batch((batch_data_), (float*)(batch_labels_),layer_buffers[0]["output"],layer_buffers[0]["labels"]);
   forward_();
-  cudaDeviceSynchronize();
   backward_(0.0);
-  cudaDeviceSynchronize();
   //std::cout << "Number of Loops" << loops << std::endl;
   for (int i = 1; i < loops; i++) {
     ((InputLayer*)layer_objects[0])->update_batch((batch_data_ + i*(offset)), (float*)(batch_labels_+i*sub_batch_size_),layer_buffers[0]["output"],layer_buffers[0]["labels"]);
