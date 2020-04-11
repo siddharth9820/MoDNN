@@ -54,8 +54,8 @@ int main(int argc, const char* argv[])
 
 
 
-    //train_with_minimal_memory(dataloader,dataset,nn, mem_manager,1);
-    train_with_minimal_memory(dataloader,dataset,nn,mem_manager,1);
+    //train_with_full_memory(dataloader,dataset,nn, mem_manager,1);
+    train_with_full_memory(dataloader,dataset,nn,mem_manager,10);
     // nn.allocate_all_memory(mem_manager);
     //
     // mem_manager->printNodes();

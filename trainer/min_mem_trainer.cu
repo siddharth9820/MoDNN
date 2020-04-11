@@ -2,7 +2,7 @@
 
 void train_with_minimal_memory(DataLoader * dataloader,Dataset * dataset,seqNetwork * nn, vmm * mem_manager, int epochs)
 {
-  int dataset_size = dataset->getDatasetSize(),batch_size = nn->batch_size;
+  int dataset_size = dataset->getDatasetSize(),batch_size = 32;
   float* data_batch, *label_batch;
   int* label_batch_integer = (int*)malloc(sizeof(int)*batch_size);
   float * output,loss;
@@ -44,19 +44,19 @@ void train_with_minimal_memory(DataLoader * dataloader,Dataset * dataset,seqNetw
   int num_iters_in_epoch =  dataset_size/batch_size;
 
 
-  for(int epoch_no=0;epoch_no<10;epoch_no++)
+  for(int epoch_no=0;epoch_no<epochs;epoch_no++)
   {
     loss = 0;
     for(int i=0;i<num_iters_in_epoch;i++)
     {
-      mem_manager->printNodes();
+      //mem_manager->printNodes();
       dataloader->get_next_batch(&data_batch, &label_batch);
       label_batch_converter_mnist(label_batch, label_batch_integer, batch_size);
       nn->update_batch(data_batch, label_batch_integer);
-      //std::cout << "Forward pass " << std::endl;
+      //std::cout << " " << std::endl;
       nn->train();
       nn->update_weights();
-      mem_manager->printNodes();
+      //mem_manager->printNodes();
       output = nn->offload_buffer(nn->num_layers-1,"output",shape);
       loss += categorical_cross_entropy_loss(output,shape,label_batch_integer+offset);
 
@@ -64,22 +64,3 @@ void train_with_minimal_memory(DataLoader * dataloader,Dataset * dataset,seqNetw
     std::cout << "Loss - " << loss/dataset_size << std::endl;
   }
 }
-// std::cout << "Offloading Input Layer - Output" << std::endl;
-// output = nn->offload_buffer(0,"output",shape);
-// print_output(output,shape);
-//
-// std::cout << "Offloading Flatten - Output" << std::endl;
-// output = nn->offload_buffer(1,"output",shape);
-// print_output(output,shape);
-//
-// std::cout << "Offloading FC Layer - Output" << std::endl;
-// output = nn->offload_buffer(2,"output",shape);
-// print_output(output,shape);
-//
-// std::cout << "Offloading FC Layer - Params" << std::endl;
-// output = nn->offload_buffer(2,"output",shape);
-// print_output(output,shape);
-//
-// std::cout << "Offloading Softmax Layer - Output" << std::endl;
-// output = nn->offload_buffer(3,"output",shape);
-// print_output(output,shape);

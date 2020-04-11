@@ -2,7 +2,7 @@
 
 void train_with_full_memory(DataLoader * dataloader,Dataset * dataset,seqNetwork * nn, vmm * mem_manager, int epochs)
 {
-  int dataset_size = dataset->getDatasetSize(),batch_size = nn->batch_size;
+  int dataset_size = dataset->getDatasetSize(),batch_size = 32;
   float* data_batch, *label_batch;
   int* label_batch_integer = (int*)malloc(sizeof(int)*batch_size);
 
