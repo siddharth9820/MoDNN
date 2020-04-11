@@ -57,7 +57,11 @@ void InputLayer::randomly_populate(float *data,float * labels)
 }
 
 void InputLayer::update_batch(float* data, float* labels, float* data_buffer, float* labels_buffer) {
+  std::cout << "Update Batch : Copying into " << data_buffer << std::endl;
+  std::cout << obatch_size *oheight*owidth*ochannels*sizeof(float) << " Bytes into output" << std::endl;
+  std::cout << obatch_size << std::endl;
   gpuErrchk(cudaMemcpy(data_buffer,data, obatch_size *oheight*owidth*ochannels*sizeof(float),cudaMemcpyHostToDevice));
+
   gpuErrchk(cudaMemcpy((void *)(labels_buffer),labels,obatch_size*sizeof(int),cudaMemcpyHostToDevice));
 }
 

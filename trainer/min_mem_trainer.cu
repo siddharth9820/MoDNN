@@ -49,12 +49,14 @@ void train_with_minimal_memory(DataLoader * dataloader,Dataset * dataset,seqNetw
     loss = 0;
     for(int i=0;i<num_iters_in_epoch;i++)
     {
+      mem_manager->printNodes();
       dataloader->get_next_batch(&data_batch, &label_batch);
       label_batch_converter_mnist(label_batch, label_batch_integer, batch_size);
       nn->update_batch(data_batch, label_batch_integer);
       //std::cout << "Forward pass " << std::endl;
       nn->train();
       nn->update_weights();
+      mem_manager->printNodes();
       output = nn->offload_buffer(nn->num_layers-1,"output",shape);
       loss += categorical_cross_entropy_loss(output,shape,label_batch_integer+offset);
 

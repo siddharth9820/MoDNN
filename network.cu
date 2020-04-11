@@ -37,7 +37,7 @@ seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std
   max_allowed_bytes_ = max_allowed_bytes;
   max_sub_batch_size_ = atoi(layer_info[0][1].c_str());
   min_seqnet_bytes_ = getMemoryLowerBound_();
-  sub_batch_size_ = calculate_sub_batch();
+  sub_batch_size_ = 32;//calculate_sub_batch();
   make_nn_objs(sub_batch_size_);
   total_seqnet_bytes_ = get_total_memory_();
 }
@@ -376,7 +376,7 @@ void seqNetwork::make_nn_objs(unsigned sub_batch_size)
 
       bytes =  new_conv->get_input_shape_and_bytes(shape);
       layer_buffer_redundant_bytes[i]["input"] = layer_buffer_redundant_bytes[i]["dinput"] = bytes;
-
+      layer_buffer_redundant_bytes[i]["workspace"] = new_conv -> get_total_workspace_size();
 
     }
     else if(layer_type == "flatten")
@@ -613,11 +613,13 @@ void seqNetwork::train() {
   int shape[4];
   ((InputLayer*)layer_objects[0]) -> get_output_shape_and_bytes(shape);
   int offset = shape[0]*shape[1]*shape[2]*shape[3];
+  std::cout << "Offset " << offset << std::endl;
+
 
   ((InputLayer*)layer_objects[0])->update_batch((batch_data_), (float*)(batch_labels_),layer_buffers[0]["output"],layer_buffers[0]["labels"]);
   forward_();
   backward_(0.0);
-
+  std::cout << "Number of Loops" << loops << std::endl;
   for (int i = 1; i < loops; i++) {
     ((InputLayer*)layer_objects[0])->update_batch((batch_data_ + i*(offset)), (float*)(batch_labels_+i*sub_batch_size_),layer_buffers[0]["output"],layer_buffers[0]["labels"]);
     forward_();
@@ -640,6 +642,7 @@ void seqNetwork::forward_()
 {
   for(int i=0;i<num_layers;i++)
   {
+    std::cout << "Forward " << i << " " << layer_info[i][0] << std::endl;
     std::map<std::string,float*> buffer_map = layer_buffers[i];
     std::string layer_type = layer_info[i][0];
 
@@ -691,6 +694,7 @@ void seqNetwork::backward() {
     std::map<std::string,float*> buffer_map = layer_buffers[i];
     std::string layer_type = layer_info[i][0];
     //cudaDeviceSynchronize();
+    std::cout << "Backward " << i << " " << layer_info[i][0] << std::endl;
     if(layer_type=="input")continue;
     else if(layer_type=="conv")
     {
@@ -937,6 +941,12 @@ void seqNetwork::allocate_mem_layer_fw(int layer_number, vmm * mem_manager)
     assert(layer_buffers[i]["labels"] == nullptr);
     bytes = layer_buffer_redundant_bytes[i]["labels"];
     mem_manager->allocate(&layer_buffers[i]["labels"],bytes,"input layer - labels");
+  }
+  if(layer_info[i][0] == "conv")
+  {
+    assert(layer_buffers[i]["workspace"] == nullptr);
+    bytes = layer_buffer_redundant_bytes[i]["workspace"];
+    mem_manager->allocate(&layer_buffers[i]["workspace"],bytes,"conv layer - workspace");
   }
 
 }
