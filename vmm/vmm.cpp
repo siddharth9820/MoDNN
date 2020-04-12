@@ -35,8 +35,7 @@ void vmm::defragmentMemSimple(){
 
 void vmm::defragmentMem()
 {
-  std::cout<<" Defragmentation required "<<std::endl;
-
+  std::cout<<" Defragmentation Required... "<<std::endl;
   struct memoryNode* prev = NULL;
   struct memoryNode* temp;
   struct memoryNode* iterator = head;
@@ -53,6 +52,7 @@ void vmm::defragmentMem()
                   iterator->next->size,
                   cudaMemcpyDeviceToDevice);
 
+      iterator->misc = iterator->next->misc;
 
       unsigned long long int total_size = iterator->size+iterator->next->size;
       iterator->size = iterator->next->size;
@@ -78,7 +78,7 @@ void vmm::defragmentMem()
     }
   }
   std::cout<<" Defragmentation complete "<<std::endl;
-  printNodes();
+  // printNodes();
 }
 
 allocstatus_t vmm::allocate(float** ptr,int bytes, std::string misc){
@@ -155,11 +155,12 @@ void vmm::deleteMem(float* ptr)
 {
   struct memoryNode* iterator = this->head;
   while(iterator){
-    std::cout<<(iterator->startAddrCuda)<<"\t"<<ptr<<std::endl;
+    //std::cout<<(iterator->startAddrCuda)<<"\t"<<ptr<<std::endl;
     if((iterator->startAddrCuda)==ptr){
       if(!iterator->isFree){
         iterator->isFree = true;
         iterator->accessPointer = NULL;
+        iterator->misc = "None";
         this->freeSize+=iterator->size;
       }
       return;

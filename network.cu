@@ -628,6 +628,20 @@ void seqNetwork::train() {
   }
 }
 
+int seqNetwork::get_loops()
+{
+  return max_sub_batch_size_/sub_batch_size_;
+}
+
+void seqNetwork::enqueue_batch_loop(int loop_no)
+{
+  int i = loop_no;
+  int shape[4];
+  ((InputLayer*)layer_objects[0]) -> get_output_shape_and_bytes(shape);
+  int offset = shape[0]*shape[1]*shape[2]*shape[3];
+  ((InputLayer*)layer_objects[0])->update_batch((batch_data_ + i*(offset)), (float*)(batch_labels_+i*sub_batch_size_),layer_buffers[0]["output"],layer_buffers[0]["labels"]);
+}
+
 void seqNetwork::forward() {
   int loops = max_sub_batch_size_/sub_batch_size_;
   int shape[4];
@@ -679,6 +693,45 @@ void seqNetwork::forward_()
 
 }
 
+void seqNetwork::forward_layer(int layer_number)
+{
+  int i = layer_number;
+  //std::cout << "Forward " << i << " " << layer_info[i][0] << std::endl;
+  std::map<std::string,float*> buffer_map = layer_buffers[i];
+  std::string layer_type = layer_info[i][0];
+
+  //cudaDeviceSynchronize();
+  if(layer_type=="input")return;
+  else if(layer_type=="conv")
+  {
+    ConvLayer * layer_obj = (ConvLayer*)(layer_objects[i]);
+    layer_obj -> forward(1.0,0.0,buffer_map["input"],buffer_map["params"],(void*)buffer_map["workspace"],buffer_map["output"]);
+  }
+  else if(layer_type=="fc")
+  {
+    FCLayer * layer_obj = (FCLayer*)(layer_objects[i]);
+    layer_obj -> forward(buffer_map["input"],buffer_map["params"],buffer_map["output"]);
+  }
+  else if(layer_type == "softmax")
+  {
+    Softmax* layer_obj = (Softmax*)(layer_objects[i]);
+    layer_obj -> forward(buffer_map["input"],buffer_map["output"]);
+  }
+  else if(layer_type == "maxpool" || layer_type == "avgpool"){
+    PoolingLayer* layer_obj = (PoolingLayer*) (layer_objects[i]);
+    layer_obj->forward(1.0,0.0,buffer_map["input"], buffer_map["output"]);
+  }
+  else if(layer_type=="relu")
+  {
+    relu * layer_obj = (relu*)(layer_objects[i]);
+    layer_obj -> forward(buffer_map["input"],buffer_map["output"]);
+  }
+
+
+
+
+}
+
 void seqNetwork::backward() {
   int loops = max_sub_batch_size_/sub_batch_size_;
   backward_(0);
@@ -726,6 +779,43 @@ void seqNetwork::backward() {
   }
 }
 
+void seqNetwork::backward_layer(int layer_number,float beta)
+{
+   int i = layer_number;
+   std::map<std::string,float*> buffer_map = layer_buffers[i];
+   std::string layer_type = layer_info[i][0];
+   //cudaDeviceSynchronize();
+   //std::cout << "Backward " << i << " " << layer_info[i][0] << std::endl;
+   if(layer_type=="input")return;
+   else if(layer_type=="conv")
+   {
+     ConvLayer * layer_obj = (ConvLayer*)(layer_objects[i]);
+     layer_obj -> backward(1.0,beta,0.0,buffer_map["doutput"],(void*)buffer_map["workspace"], buffer_map["params"], buffer_map["input"], buffer_map["dinput"], buffer_map["dparams"],lr);
+   }
+   else if(layer_type=="fc")
+   {
+     FCLayer * layer_obj = (FCLayer*)(layer_objects[i]);
+     layer_obj -> backward(1.0,beta,0.0,buffer_map["input"], buffer_map["params"],buffer_map["dparams"],buffer_map["dinput"], buffer_map["doutput"],lr);
+   }
+   else if(layer_type == "softmax")
+   {
+     Softmax* layer_obj = (Softmax*)(layer_objects[i]);
+     layer_obj -> backward((int*)layer_buffers[0]["labels"],buffer_map["dinput"],buffer_map["output"]);
+     //gradients are stored in buffer_map["labels"]
+   }
+   else if(layer_type == "maxpool" || layer_type == "avgpool")
+   {
+     PoolingLayer* layer_obj = (PoolingLayer*) (layer_objects[i]);
+     layer_obj->backward(1.0,0.0,buffer_map["output"], buffer_map["doutput"] ,buffer_map["input"], buffer_map["dinput"]);
+   }
+   else if(layer_type=="relu")
+   {
+     relu * layer_obj = (relu*)(layer_objects[i]);
+     layer_obj -> backward(buffer_map["input"],buffer_map["output"],buffer_map["dinput"],buffer_map["doutput"]);
+   }
+
+}
+
 void seqNetwork::update_weights() {
   for(int i=num_layers-1;i>=0;i--)
   {
@@ -750,7 +840,7 @@ float* seqNetwork::offload_buffer(int layer_number, std::string type,int shape[]
 {
   int bytes;
   std::string layer_type = layer_info[layer_number][0];
-  //std::cout << "Offloading " << layer_type << std::endl;
+  //std::cout << "Offloading layer number - " << layer_number <<" " <<layer_type <<" "<<type <<std::endl;
   if(layer_type=="conv")
   {
     ConvLayer * layer_obj = (ConvLayer*)(layer_objects[layer_number]);
@@ -813,13 +903,47 @@ float* seqNetwork::offload_buffer(int layer_number, std::string type,int shape[]
   }
 
   if(layer_offloaded_buffers[layer_number][type] == nullptr){
-    std::cout << "Allocating bytes to the layer buffer " << layer_number <<" " << type<<std::endl;
+    //std::cout << "Allocating bytes to the layer buffer " << layer_number <<" " << type<<std::endl;
     layer_offloaded_buffers[layer_number][type] = (float*)malloc(bytes);
 
   }
 
   gpuErrchk(cudaMemcpy(layer_offloaded_buffers[layer_number][type],layer_buffers[layer_number][type],bytes,
     cudaMemcpyDeviceToHost));
+
+  if(type == "output" && layer_number < num_layers-1)
+    layer_offloaded_buffers[layer_number+1]["input"] = layer_offloaded_buffers[layer_number]["output"];
+  if(type == "doutput" && layer_number < num_layers-1)
+    layer_offloaded_buffers[layer_number+1]["dinput"] = layer_offloaded_buffers[layer_number]["doutput"];
+
+  if(type == "input" && layer_number > 0)
+    layer_offloaded_buffers[layer_number-1]["output"] = layer_offloaded_buffers[layer_number]["input"];
+  if(type == "dinput" && layer_number > 0)
+    layer_offloaded_buffers[layer_number-1]["doutput"] = layer_offloaded_buffers[layer_number]["dinput"];
+
+  if(layer_type=="flatten")
+  {
+    if(type == "output")
+    {
+      layer_offloaded_buffers[layer_number]["input"] = layer_offloaded_buffers[layer_number]["output"];
+      if(layer_number>0)layer_offloaded_buffers[layer_number-1]["output"] = layer_offloaded_buffers[layer_number]["input"];
+    }
+    if(type == "input")
+    {
+      layer_offloaded_buffers[layer_number]["output"] = layer_offloaded_buffers[layer_number]["input"];
+      if(layer_number+1<num_layers)layer_offloaded_buffers[layer_number+1]["input"] = layer_offloaded_buffers[layer_number]["output"];
+    }
+    if(type == "doutput")
+    {
+      layer_offloaded_buffers[layer_number]["dinput"] = layer_offloaded_buffers[layer_number]["doutput"];
+      if(layer_number>0)layer_offloaded_buffers[layer_number-1]["doutput"] = layer_offloaded_buffers[layer_number]["dinput"];
+    }
+    if(type == "dinput")
+    {
+      layer_offloaded_buffers[layer_number]["doutput"] = layer_offloaded_buffers[layer_number]["dinput"];
+      if(layer_number+1<num_layers)layer_offloaded_buffers[layer_number+1]["dinput"] = layer_offloaded_buffers[layer_number]["doutput"];
+    }
+  }
 
   return layer_offloaded_buffers[layer_number][type];
 
@@ -829,39 +953,51 @@ float* seqNetwork::offload_buffer(int layer_number, std::string type,int shape[]
 
 }
 
-void seqNetwork::prefetch_buffer(int layer_number,std::string type)
+float* seqNetwork::prefetch_buffer(int layer_number, std::string type,int shape[])
 {
-  int bytes,shape[4];
+  int bytes;
   std::string layer_type = layer_info[layer_number][0];
-  std::cout << "Prefetching " << layer_type << std::endl;
+  //std::cout << "Prefetching layer number - " << layer_number <<" " <<layer_type <<" "<<type <<std::endl;
   if(layer_type=="conv")
   {
     ConvLayer * layer_obj = (ConvLayer*)(layer_objects[layer_number]);
-    if(type=="output")
+    if(type=="output" || type=="doutput")
       bytes = layer_obj->get_output_shape_and_bytes(shape);
     else if(type == "workspace")
       bytes = layer_obj->get_total_workspace_size();
+    else if(type == "input" || type == "dinput")
+      bytes = layer_obj->get_input_shape_and_bytes(shape);
+
   }
   else if(layer_type=="fc")
   {
     FCLayer * layer_obj = (FCLayer*)(layer_objects[layer_number]);
-    if(type=="output")
+    if(type=="output" || type=="doutput")
       bytes = layer_obj->get_output_shape_and_bytes(shape);
+    else if(type == "input" || type == "dinput")
+      bytes = layer_obj->get_input_shape_and_bytes(shape);
+    else if(type=="params" || type == "dparams")
+      bytes = layer_obj -> get_params_shape_and_bytes(shape);
+
   }
   else if(layer_type=="flatten")
   {
-    std::cout << "Offloading " << layer_type << std::endl;
+
     Flatten * layer_obj = (Flatten*)(layer_objects[layer_number]);
-    if(type=="output")
+    if(type=="output" || type=="doutput")
       bytes = layer_obj->get_output_shape_and_bytes(shape);
+    else if(type == "input" || type == "dinput")
+      bytes = layer_obj->get_input_shape_and_bytes(shape);
 
   }
   else if(layer_type == "softmax")
   {
 
     Softmax * layer_obj = (Softmax*)(layer_objects[layer_number]);
-    if(type=="output")
+    if(type=="output" || type=="doutput")
       bytes = layer_obj->get_output_shape_and_bytes(shape);
+    else if(type == "input" || type == "dinput")
+      bytes = layer_obj->get_input_shape_and_bytes(shape);
   }
   else if(layer_type == "input")
   {
@@ -869,17 +1005,32 @@ void seqNetwork::prefetch_buffer(int layer_number,std::string type)
     if(type=="output")
       bytes = layer_obj->get_output_shape_and_bytes(shape);
   }
+  else if (layer_type == "maxpool" || layer_type == "avgpool"){
+    PoolingLayer * layer_obj = (PoolingLayer*)(layer_objects[layer_number]);
+    if(type=="output")
+      bytes = layer_obj->get_output_shape_and_bytes(shape);
+  }
+  else if(layer_type == "relu")
+  {
+    relu * layer_obj = (relu*)(layer_objects[layer_number]);
+    if(type == "output" || type == "doutput")
+      bytes = layer_obj->get_output_shape_and_bytes(shape);
+    else if(type=="input" || type == "dinput")
+      bytes = layer_obj->get_input_shape_and_bytes(shape);
+  }
 
-  if(layer_buffers[layer_number][type] == nullptr)
-    gpuErrchk(cudaMalloc(&layer_buffers[layer_number][type],bytes));
+  assert (layer_offloaded_buffers[layer_number][type] != nullptr); //nonempty source
+  assert (layer_buffers[layer_number][type] != nullptr);           //non empty destination
 
   gpuErrchk(cudaMemcpy(layer_buffers[layer_number][type],layer_offloaded_buffers[layer_number][type],bytes,
     cudaMemcpyHostToDevice));
 
+  return layer_buffers[layer_number][type];
+
+  // cudaFree(layer_buffers[layer_number][type]);
+  // layer_buffers[layer_number][type] = nullptr;
 
 
-  //free(layer_offloaded_buffers[layer_number][type]);
-  //layer_offloaded_buffers[layer_number][type] = nullptr;
 }
 
 void seqNetwork::allocate_all_memory(vmm * mem_manager)
@@ -930,10 +1081,10 @@ void seqNetwork::allocate_mem_layer_fw(int layer_number, vmm * mem_manager)
   int i = layer_number,bytes;
   int shape[4];
 
-  if(layer_info[i][0]!="flatten"){
+  if(layer_info[i][0]!="flatten")
+  {
     assert(layer_buffers[i]["output"] == nullptr);
     bytes = layer_buffer_redundant_bytes[i]["output"];
-    std::cout << layer_info[i][0] << " " << bytes << std::endl;
     mem_manager->allocate(&layer_buffers[i]["output"],bytes,layer_info[i][0]+" layer - output");
   }
 
@@ -952,6 +1103,8 @@ void seqNetwork::allocate_mem_layer_fw(int layer_number, vmm * mem_manager)
   }
 
 }
+
+
 void seqNetwork::link_layer_buffer_fw(int layer_number)
 {
   int i = layer_number;
@@ -963,20 +1116,144 @@ void seqNetwork::link_layer_buffer_fw(int layer_number)
 
 }
 
-void seqNetwork::allocate_mem_layer_bw(int layer_number, vmm * mem_manager)
+void seqNetwork::deallocate_mem_layer_fw(int layer_number, vmm * mem_manager,int local)
 {
   int i = layer_number,bytes;
+  int shape[4];
 
-  if(layer_info[i][0]!="flatten" && layer_info[i][0]!="input"){
-    assert(layer_buffers[i]["dinput"] == nullptr);
-    bytes = layer_buffer_redundant_bytes[i]["dinput"];
-    std::cout << layer_info[i][0] << " " << bytes << std::endl;
-    mem_manager->allocate(&layer_buffers[i]["dinput"],bytes,layer_info[i][0]+" layer - dinput");
+  if(local==0){
+    if(i+1 == num_layers || layer_info[i+1][0]!="flatten")
+    {
+      assert(layer_buffers[i]["output"] != nullptr);
+      bytes = layer_buffer_redundant_bytes[i]["output"];
+      offload_buffer(i,"output",shape);
+      mem_manager->deleteMem(layer_buffers[i]["output"]);
+      layer_buffers[i]["output"] = nullptr;
+      if(layer_info[i][0] == "flatten"){
+        layer_buffers[i]["input"] = nullptr;
+        if(i>0)
+          layer_buffers[i-1]["output"] = nullptr;
+      }
+    }
+    return;
+  }
+
+  if(layer_info[i][0] == "input")
+  {
+    //allocate labels memory
+    assert(layer_buffers[i]["labels"] != nullptr);
+    bytes = layer_buffer_redundant_bytes[i]["labels"];
+    offload_buffer(i,"labels",shape);
+    mem_manager->deleteMem(layer_buffers[i]["labels"]);
+    layer_buffers[i]["labels"] = nullptr;
+  }
+  if(layer_info[i][0] == "conv")
+  {
+    assert(layer_buffers[i]["workspace"] != nullptr);
+    bytes = layer_buffer_redundant_bytes[i]["workspace"];
+    mem_manager->deleteMem(layer_buffers[i]["workspace"]);
+    layer_buffers[i]["workspace"] = nullptr;
   }
 
 }
 
+void seqNetwork::allocate_mem_layer_bw(int layer_number, vmm * mem_manager)
+{
+  int i = layer_number,bytes;
+  int shape[4];
 
+  //dinput
+  if(layer_info[i][0]!="flatten" && layer_info[i][0]!="input")
+  {
+    assert(layer_buffers[i]["dinput"] == nullptr);
+    bytes = layer_buffer_redundant_bytes[i]["dinput"];
+    mem_manager->allocate(&layer_buffers[i]["dinput"],bytes,layer_info[i][0]+" layer - dinput");
+  }
+  //workspace
+  if(layer_info[i][0] == "conv")
+  {
+    assert(layer_buffers[i]["workspace"] == nullptr);
+    bytes = layer_buffer_redundant_bytes[i]["workspace"];
+    mem_manager->allocate(&layer_buffers[i]["workspace"],bytes,"conv layer - workspace");
+  }
+  //output
+  if(layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool" || layer_info[i][0] == "relu")
+  {
+    assert(layer_buffers[i]["output"] == nullptr);
+    bytes = layer_buffer_redundant_bytes[i]["output"];
+    mem_manager->allocate(&layer_buffers[i]["output"],bytes,layer_info[i][0]+ " output");
+    //prefetch output
+    prefetch_buffer(i,"output",shape);
+  }
+  //input
+  if(layer_info[i][0] == "conv" || layer_info[i][0] == "fc"|| layer_info[i][0] == "relu"||layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool")
+  {
+    assert(layer_buffers[i]["input"] == nullptr);
+    bytes = layer_buffer_redundant_bytes[i]["input"];
+    mem_manager->allocate(&layer_buffers[i]["input"],bytes,layer_info[i][0]+ " input");
+    prefetch_buffer(i,"input",shape);
+    //prefetch input
+  }
+
+}
+
+void seqNetwork::deallocate_mem_layer_bw(int layer_number, vmm * mem_manager, int local)
+{
+  int i = layer_number,bytes;
+
+  //dinput
+  if(local==0){
+    if(layer_info[i][0]!="input")
+    {
+      if(i-1 <0 || layer_info[i-1][0] != "flatten")
+      {
+        assert(layer_buffers[i]["dinput"] != nullptr);
+        mem_manager->deleteMem(layer_buffers[i]["dinput"]);
+        layer_buffers[i]["dinput"] = nullptr;
+      }
+      if(layer_info[i][0]=="flatten")
+      {
+        layer_buffers[i]["doutput"] = nullptr;
+        if(i+1<num_layers)
+          layer_buffers[i+1]["dinput"] = nullptr;
+      }
+
+    }
+    return;
+  }
+
+  //workspace
+  if(layer_info[i][0] == "conv")
+  {
+    assert(layer_buffers[i]["workspace"] != nullptr);
+    mem_manager->deleteMem(layer_buffers[i]["workspace"]);
+    layer_buffers[i]["workspace"] = nullptr;
+  }
+  //output
+  if(layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool" || layer_info[i][0] == "relu" || layer_info[i][0] == "softmax")
+  {
+    assert(layer_buffers[i]["output"] != nullptr);
+    mem_manager->deleteMem(layer_buffers[i]["output"]);
+    layer_buffers[i]["output"] = nullptr;
+
+  }
+  //input
+  if(layer_info[i][0] == "conv" || layer_info[i][0] == "fc"|| layer_info[i][0] == "relu"||layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool")
+  {
+    assert(layer_buffers[i]["input"] != nullptr);
+    mem_manager->deleteMem(layer_buffers[i]["input"]);
+    layer_buffers[i]["input"] = nullptr;
+    //prefetch input
+  }
+  //labels
+  if(layer_info[i][0]=="softmax")
+  {
+    assert(layer_buffers[0]["labels"] != nullptr);
+    mem_manager->deleteMem(layer_buffers[0]["labels"]);
+    layer_buffers[0]["labels"] = nullptr;
+  }
+
+}
 
 void seqNetwork::link_layer_buffer_bw(int layer_number)
 {
@@ -992,21 +1269,21 @@ void seqNetwork::link_layer_buffer_bw(int layer_number)
 
 seqNetwork::~seqNetwork()
 {
-  // cudnnDestroy(handle);
-  // cublasDestroy(blas_handle);
-  // for(int i=0;i<num_layers;i++)
-  // {
-  //   if(layer_buffers[i]["input"]!=nullptr)
-  //     cudaFree(layer_buffers[i]["input"]);
-  //   if(layer_buffers[i]["workspace"]!=nullptr)
-  //     cudaFree(layer_buffers[i]["workspace"]);
-  //   if(layer_buffers[i]["output"]!=nullptr)
-  //     cudaFree(layer_buffers[i]["output"]);
-  //   if(layer_buffers[i]["params"]!=nullptr)
-  //     cudaFree(layer_buffers[i]["params"]);
-  //
-  //   if(layer_info[i][0]=="input")
-  //     cudaFree(layer_buffers[i]["labels"]);
-  //
-  // }
+  cudnnDestroy(handle);
+  cublasDestroy(blas_handle);
+  for(int i=0;i<num_layers;i++)
+  {
+    if(layer_buffers[i]["input"]!=nullptr)
+      cudaFree(layer_buffers[i]["input"]);
+    if(layer_buffers[i]["workspace"]!=nullptr)
+      cudaFree(layer_buffers[i]["workspace"]);
+    if(layer_buffers[i]["output"]!=nullptr)
+      cudaFree(layer_buffers[i]["output"]);
+    if(layer_buffers[i]["params"]!=nullptr)
+      cudaFree(layer_buffers[i]["params"]);
+
+    if(layer_info[i][0]=="input")
+      cudaFree(layer_buffers[i]["labels"]);
+
+  }
 }
