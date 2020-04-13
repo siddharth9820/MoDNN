@@ -41,6 +41,12 @@ seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std
   make_nn_objs(sub_batch_size_);
   total_seqnet_bytes_ = get_total_memory_();
   cudaStreamCreate(&memory_stream_); 
+  prefetch_status_ = (bool*) malloc(sizeof(bool)*num_layers);
+  offload_status_ = (bool*) malloc(sizeof(bool)*num_layers);
+  for (int i = 0; i < num_layers; i++) {
+    prefetch_status_[i] = false;
+    offload_status_[i] = false;
+  }
 }
 
 
@@ -640,6 +646,11 @@ void seqNetwork::enqueue_batch_loop(int loop_no)
   ((InputLayer*)layer_objects[0]) -> get_output_shape_and_bytes(shape);
   int offset = shape[0]*shape[1]*shape[2]*shape[3];
   ((InputLayer*)layer_objects[0])->update_batch((batch_data_ + i*(offset)), (float*)(batch_labels_+i*sub_batch_size_),layer_buffers[0]["output"],layer_buffers[0]["labels"]);
+
+  for (int i = 0; i < num_layers; i++) {
+    prefetch_status_[i] = false;
+    offload_status_[i] = false;
+  }
 }
 
 void seqNetwork::forward() {
@@ -784,8 +795,9 @@ void seqNetwork::backward_layer(int layer_number,float beta)
    int i = layer_number;
    std::map<std::string,float*> buffer_map = layer_buffers[i];
    std::string layer_type = layer_info[i][0];
-   cudaDeviceSynchronize();
-   //std::cout << "Backward " << i << " " << layer_info[i][0] << std::endl;
+   if (layer_number != num_layers-1)
+    cudaDeviceSynchronize();
+   //  std::cout << "Backward " << i << " " << layer_info[i][0] << std::endl;
    if(layer_type=="input")return;
    else if(layer_type=="conv")
    {
@@ -908,6 +920,7 @@ float* seqNetwork::offload_buffer(int layer_number, std::string type,int shape[]
 
   }
 
+  offload_status_[layer_number] = true;
   gpuErrchk(cudaMemcpyAsync(layer_offloaded_buffers[layer_number][type],layer_buffers[layer_number][type],bytes,
     cudaMemcpyDeviceToHost), memory_stream_);
 
@@ -1022,6 +1035,7 @@ float* seqNetwork::prefetch_buffer(int layer_number, std::string type,int shape[
   assert (layer_offloaded_buffers[layer_number][type] != nullptr); //nonempty source
   assert (layer_buffers[layer_number][type] != nullptr);           //non empty destination
 
+  prefetch_status_[layer_number] = true;
   gpuErrchk(cudaMemcpyAsync(layer_buffers[layer_number][type],layer_offloaded_buffers[layer_number][type],bytes,
     cudaMemcpyHostToDevice), memory_stream_);
 
@@ -1136,6 +1150,10 @@ void seqNetwork::deallocate_mem_layer_fw(int layer_number, vmm * mem_manager,int
           layer_buffers[i-1]["output"] = nullptr;
       }
     }
+    if (layer_info[i][0]!="flatten") {
+      offload_status_[i] = true;
+    }
+
     return;
   }
 
@@ -1145,6 +1163,7 @@ void seqNetwork::deallocate_mem_layer_fw(int layer_number, vmm * mem_manager,int
     assert(layer_buffers[i]["labels"] != nullptr);
     bytes = layer_buffer_redundant_bytes[i]["labels"];
     offload_buffer(i,"labels",shape);
+    cudaDeviceSynchronize();
     mem_manager->deleteMem(layer_buffers[i]["labels"]);
     layer_buffers[i]["labels"] = nullptr;
   }
@@ -1163,39 +1182,56 @@ void seqNetwork::allocate_mem_layer_bw(int layer_number, vmm * mem_manager)
   int i = layer_number,bytes;
   int shape[4];
 
+  unsigned alphaT = ceil(0.15*2*num_layers);
+  for (int i = layer_number; i > layer_number-alphaT && i >= 0; i--) {
   //dinput
-  if(layer_info[i][0]!="flatten" && layer_info[i][0]!="input")
-  {
-    assert(layer_buffers[i]["dinput"] == nullptr);
-    bytes = layer_buffer_redundant_bytes[i]["dinput"];
-    mem_manager->allocate(&layer_buffers[i]["dinput"],bytes,layer_info[i][0]+" layer - dinput");
-  }
-  //workspace
-  if(layer_info[i][0] == "conv")
-  {
-    assert(layer_buffers[i]["workspace"] == nullptr);
-    bytes = layer_buffer_redundant_bytes[i]["workspace"];
-    mem_manager->allocate(&layer_buffers[i]["workspace"],bytes,"conv layer - workspace");
-  }
-  //output
-  if(layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool" || layer_info[i][0] == "relu")
-  {
-    assert(layer_buffers[i]["output"] == nullptr);
-    bytes = layer_buffer_redundant_bytes[i]["output"];
-    mem_manager->allocate(&layer_buffers[i]["output"],bytes,layer_info[i][0]+ " output");
-    //prefetch output
-    prefetch_buffer(i,"output",shape);
-  }
-  //input
-  if(layer_info[i][0] == "conv" || layer_info[i][0] == "fc"|| layer_info[i][0] == "relu"||layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool")
-  {
-    assert(layer_buffers[i]["input"] == nullptr);
-    bytes = layer_buffer_redundant_bytes[i]["input"];
-    mem_manager->allocate(&layer_buffers[i]["input"],bytes,layer_info[i][0]+ " input");
-    prefetch_buffer(i,"input",shape);
-    //prefetch input
-  }
+    if (prefetch_status_[i] || !offload_status_[i]) continue;
 
+    if(layer_info[i][0]!="flatten" && layer_info[i][0]!="input")
+    {
+      assert(layer_buffers[i]["dinput"] == nullptr);
+      bytes = layer_buffer_redundant_bytes[i]["dinput"];
+      mem_manager->allocate(&layer_buffers[i]["dinput"],bytes,layer_info[i][0]+" layer - dinput");
+    } else {
+      prefetch_status_[i] = true;
+    }
+    //workspace
+    if(layer_info[i][0] == "conv")
+    {
+      assert(layer_buffers[i]["workspace"] == nullptr);
+      bytes = layer_buffer_redundant_bytes[i]["workspace"];
+      mem_manager->allocate(&layer_buffers[i]["workspace"],bytes,"conv layer - workspace");
+    }
+    //output
+    if(layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool" || layer_info[i][0] == "relu")
+    {
+      assert(layer_buffers[i]["output"] == nullptr);
+      bytes = layer_buffer_redundant_bytes[i]["output"];
+      mem_manager->allocate(&layer_buffers[i]["output"],bytes,layer_info[i][0]+ " output");
+      //prefetch output
+      prefetch_buffer(i,"output",shape);
+    }
+    //input
+    if(layer_info[i][0] == "conv" || layer_info[i][0] == "fc"|| layer_info[i][0] == "relu"||layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool")
+    {
+      assert(layer_buffers[i]["input"] == nullptr);
+      bytes = layer_buffer_redundant_bytes[i]["input"];
+      mem_manager->allocate(&layer_buffers[i]["input"],bytes,layer_info[i][0]+ " input");
+      prefetch_buffer(i,"input",shape);
+      //prefetch input
+    }
+
+    // std::cout <<"Prefetched " <<  layer_info[i][0] << "\n"; 
+    link_layer_buffer_bw(i);
+    if (layer_info[i][0] == "conv") { 
+      break;
+    }
+    
+    if (i == num_layers-1) { 
+      cudaDeviceSynchronize();
+    }
+  }
+  
 }
 
 void seqNetwork::deallocate_mem_layer_bw(int layer_number, vmm * mem_manager, int local)

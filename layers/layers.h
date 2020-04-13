@@ -169,6 +169,8 @@ namespace network
       unsigned min_seqnet_bytes_;
       float* batch_data_;
       int* batch_labels_;
+      bool* offload_status_;
+      bool* prefetch_status_;
   };
 }
 
