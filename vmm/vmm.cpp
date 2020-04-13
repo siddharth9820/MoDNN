@@ -2,7 +2,7 @@
 
 
 
-vmm::vmm(int bytes){
+vmm::vmm(int bytes,std::vector<std::map<std::string,float*> > *layer_buffers){
 
   freeSize = bytes;
   float * memStartAddress;
@@ -13,6 +13,7 @@ vmm::vmm(int bytes){
   head->accessPointer = NULL;
   head->size = freeSize;
   head->isFree = true;
+  buffers = layer_buffers;
 
 }
 
@@ -35,7 +36,7 @@ void vmm::defragmentMemSimple(){
 
 void vmm::defragmentMem()
 {
-  std::cout<<" Defragmentation Required... "<<std::endl;
+  //std::cout<<" Defragmentation Required... "<<std::endl;
   struct memoryNode* prev = NULL;
   struct memoryNode* temp;
   struct memoryNode* iterator = head;
@@ -51,6 +52,32 @@ void vmm::defragmentMem()
                   iterator->next->startAddrCuda,
                   iterator->next->size,
                   cudaMemcpyDeviceToDevice);
+
+
+      float *old_addr = iterator->next->startAddrCuda, *new_addr = iterator->startAddrCuda, *current_addr;
+      std::map<std::string,float *>::iterator it;
+      int num_layers = (*buffers).size();
+      std::string buff_type;
+
+      for(int i=0;i<num_layers;i++)
+      {
+        it = (*buffers)[i].begin();
+        while(it!=(*buffers)[i].end())
+        {
+          buff_type = it->first;
+          current_addr = it->second;
+          if(current_addr == old_addr)
+          {
+            //std::cout << "Found match : Layer - " << i << " Buff type - "<<buff_type << std::endl;
+            (*buffers)[i][buff_type] = new_addr;
+          }
+          it++;
+        }
+
+      }
+      //std::cout << "Defragmentation of block complete" << std::endl;
+
+
 
       iterator->misc = iterator->next->misc;
 
@@ -77,7 +104,7 @@ void vmm::defragmentMem()
       iterator = iterator->next;
     }
   }
-  std::cout<<" Defragmentation complete "<<std::endl;
+  //std::cout<<" Defragmentation complete "<<std::endl;
   // printNodes();
 }
 

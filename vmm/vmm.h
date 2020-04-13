@@ -9,6 +9,9 @@
 #include <cudnn.h>
 #include <cublas_v2.h>
 #include <cuda.h>
+#include <vector>
+#include <map>
+#include <string>
 
 struct memoryNode{
   float* startAddrCuda;			// stores the address in GPU memory
@@ -49,9 +52,10 @@ class vmm{
     int freeSize;
     struct memoryNode* head;
     float* allocateHelper(float** ptr,int bytes,std::string misc);
+    std::vector<std::map<std::string,float*> > *buffers;
 
   public:
-		vmm(int bytes);
+		vmm(int bytes,std::vector<std::map<std::string,float*> > *layer_buffers);
 		// this method just joins contiguous free blocks
 		void defragmentMemSimple();
 		// this method moves all free blocks in the end and combines them into a single contiguous block

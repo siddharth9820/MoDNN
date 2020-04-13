@@ -32,26 +32,26 @@ void train_with_minimal_memory(DataLoader * dataloader,Dataset * dataset,seqNetw
   if(rem)
     std::cout << "Ignoring last batch " << std::endl;
 
-  int epoch_no = 0;
-  // for(int epoch_no=0;epoch_no<epochs;epoch_no++)
-  // {
+  //int epoch_no = 0;
+  for(int epoch_no=0;epoch_no<epochs;epoch_no++)
+  {
     float epoch_loss = 0;
-    // for(int batch_no=0;batch_no<num_iters_in_epoch;batch_no++)
-    // {
+    for(int batch_no=0;batch_no<num_iters_in_epoch;batch_no++)
+    {
       dataloader->get_next_batch(&data_batch, &label_batch);
       label_batch_converter_mnist(label_batch, label_batch_integer, batch_size);
       nn->update_batch(data_batch, label_batch_integer);
       float beta = 0.0;
-      int loop_no = 0;
-      // for(int loop_no=0;loop_no<loops;loop_no++)
-      // {
+      //int loop_no = 0;
+      for(int loop_no=0;loop_no<loops;loop_no++)
+      {
         //forward
         for(int i=0;i<nn->num_layers;i++)
         {
-            std::cout << "Layer "<<i << " " << nn->layer_info[i][0] << " Forward" << std::endl;
+            //std::cout << "Layer "<<i << " " << nn->layer_info[i][0] << " Forward" << std::endl;
             nn->allocate_mem_layer_fw(i,mem_manager);
             nn->link_layer_buffer_fw(i);
-            mem_manager->printNodes();
+            //mem_manager->printNodes();
 
             if(i==0)//enqueue_batch
             {
@@ -74,9 +74,9 @@ void train_with_minimal_memory(DataLoader * dataloader,Dataset * dataset,seqNetw
         if(loop_no>0)beta=1.0;
         for(int i=nn->num_layers-1;i>=0;i--)
         {
-          std::cout << "Layer "<<i << " " << nn->layer_info[i][0] << " Backward" << std::endl;
+          //std::cout << "Layer "<<i << " " << nn->layer_info[i][0] << " Backward" << std::endl;
           nn->allocate_mem_layer_bw(i,mem_manager);
-          mem_manager->printNodes();
+          //mem_manager->printNodes();
           nn->link_layer_buffer_bw(i);
           nn->backward_layer(i,beta);
           nn->deallocate_mem_layer_bw(i,mem_manager,1);
@@ -88,11 +88,11 @@ void train_with_minimal_memory(DataLoader * dataloader,Dataset * dataset,seqNetw
             nn->link_layer_buffer_bw(i+1);
           }
         }
-      // }
+      }
       nn->update_weights();
-    // }
+    }
     std::cout << "Epoch Number - " << epoch_no << " Loss - " << epoch_loss/dataset_size << std::endl;
-  // }
+  }
 
 
   // for(int i=0;i<nn->num_layers;i++){
