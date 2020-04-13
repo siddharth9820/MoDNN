@@ -40,6 +40,7 @@ seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std
   sub_batch_size_ = calculate_sub_batch();
   make_nn_objs(sub_batch_size_);
   total_seqnet_bytes_ = get_total_memory_();
+  cudaStreamCreate(&memory_stream_); 
 }
 
 
@@ -53,7 +54,6 @@ unsigned seqNetwork::getMemoryLowerBound_() {
   int buff_bytes;
   int fw_bytes, bw_bytes=0;
   int min_memory = 0;
-  int weights_memory = 0;
   for(int i=0;i<num_layers;i++)
   {
     buff_type = layer_info[i][0];
@@ -67,14 +67,12 @@ unsigned seqNetwork::getMemoryLowerBound_() {
     else if(buff_type=="conv")
     {
       fw_bytes += layer_buffer_bytes[i]["input"] + layer_buffer_bytes[i]["workspace"] + layer_buffer_bytes[i]["output"];
-      bw_bytes += layer_buffer_bytes[i]["doutput"]+layer_buffer_bytes[i]["workspace"] + layer_buffer_bytes[i]["input"]+ layer_buffer_bytes[i]["dinput"]+ layer_buffer_bytes[i]["dparams"];
-      weights_memory += layer_buffer_bytes[i]["params"];
+      bw_bytes += layer_buffer_bytes[i]["doutput"]+layer_buffer_bytes[i]["workspace"] + layer_buffer_bytes[i]["input"]+ layer_buffer_bytes[i]["dinput"];
     }
     else if(buff_type=="fc")
     {
       fw_bytes += layer_buffer_bytes[i]["input"]+layer_buffer_bytes[i]["output"];
-      bw_bytes += layer_buffer_bytes[i]["input"] +layer_buffer_bytes[i]["dparams"]+layer_buffer_bytes[i]["dinput"]+ layer_buffer_bytes[i]["doutput"];
-      weights_memory += layer_buffer_bytes[i]["params"];
+      bw_bytes += layer_buffer_bytes[i]["input"] +layer_buffer_bytes[i]["dinput"]+ layer_buffer_bytes[i]["doutput"];
     }
     else if(buff_type == "softmax")
     {
@@ -100,9 +98,9 @@ unsigned seqNetwork::getMemoryLowerBound_() {
       min_memory = bw_bytes;
     }
   }
-  std::cout << "Weights memory : " << weights_memory << std::endl;
-  std::cout << "Minimum memory requirement : " << min_memory + weights_memory << std::endl;
-  return min_memory + weights_memory;
+  std::cout << "Weights memory : " << weights_memory_bytes_ << std::endl;
+  std::cout << "Minimum memory requirement : " << min_memory + weights_memory_bytes_ << std::endl;
+  return min_memory + weights_memory_bytes_;
 }
 
 unsigned seqNetwork::sub_batch_size() {
@@ -159,10 +157,10 @@ bool seqNetwork::profile_subbatch_validity(unsigned batch_size) {
       std::cout << buff_type << " Is already present\n";
     }
     if(buff_type=="conv") {
-      temp = layer_buffer_bytes[i]["workspace"] +  layer_buffer_bytes[i]["dinput"]+ layer_buffer_bytes[i]["dparams"];
+      temp = layer_buffer_bytes[i]["workspace"] +  layer_buffer_bytes[i]["dinput"];
     }
     else if(buff_type=="fc") {
-      temp = layer_buffer_bytes[i]["dparams"]+layer_buffer_bytes[i]["dinput"]+ layer_buffer_bytes[i]["doutput"];
+      temp = layer_buffer_bytes[i]["dinput"]+ layer_buffer_bytes[i]["doutput"];
     }
     else if(buff_type == "softmax") {
       temp = layer_buffer_bytes[0]["labels"]+layer_buffer_bytes[i]["dinput"];
@@ -373,6 +371,7 @@ void seqNetwork::make_nn_objs(unsigned sub_batch_size)
       layer_buffer_bytes[i]["workspace"] = new_conv -> get_total_workspace_size();
 
       weights_memory_bytes_ += layer_buffer_bytes[i]["params"];
+      weights_memory_bytes_ += layer_buffer_bytes[i]["dparams"];
 
       bytes =  new_conv->get_input_shape_and_bytes(shape);
       layer_buffer_redundant_bytes[i]["input"] = layer_buffer_redundant_bytes[i]["dinput"] = bytes;
@@ -443,6 +442,7 @@ void seqNetwork::make_nn_objs(unsigned sub_batch_size)
       layer_buffer_bytes[i]["dparams"] = new_fc -> get_params_shape_and_bytes(shape);
 
       weights_memory_bytes_ += layer_buffer_bytes[i]["params"];
+      weights_memory_bytes_ += layer_buffer_bytes[i]["dparams"];
 
       layer_objects.push_back(new_fc);
 
@@ -784,7 +784,7 @@ void seqNetwork::backward_layer(int layer_number,float beta)
    int i = layer_number;
    std::map<std::string,float*> buffer_map = layer_buffers[i];
    std::string layer_type = layer_info[i][0];
-   //cudaDeviceSynchronize();
+   cudaDeviceSynchronize();
    //std::cout << "Backward " << i << " " << layer_info[i][0] << std::endl;
    if(layer_type=="input")return;
    else if(layer_type=="conv")
@@ -908,8 +908,8 @@ float* seqNetwork::offload_buffer(int layer_number, std::string type,int shape[]
 
   }
 
-  gpuErrchk(cudaMemcpy(layer_offloaded_buffers[layer_number][type],layer_buffers[layer_number][type],bytes,
-    cudaMemcpyDeviceToHost));
+  gpuErrchk(cudaMemcpyAsync(layer_offloaded_buffers[layer_number][type],layer_buffers[layer_number][type],bytes,
+    cudaMemcpyDeviceToHost), memory_stream_);
 
   if(type == "output" && layer_number < num_layers-1)
     layer_offloaded_buffers[layer_number+1]["input"] = layer_offloaded_buffers[layer_number]["output"];
@@ -1022,8 +1022,8 @@ float* seqNetwork::prefetch_buffer(int layer_number, std::string type,int shape[
   assert (layer_offloaded_buffers[layer_number][type] != nullptr); //nonempty source
   assert (layer_buffers[layer_number][type] != nullptr);           //non empty destination
 
-  gpuErrchk(cudaMemcpy(layer_buffers[layer_number][type],layer_offloaded_buffers[layer_number][type],bytes,
-    cudaMemcpyHostToDevice));
+  gpuErrchk(cudaMemcpyAsync(layer_buffers[layer_number][type],layer_offloaded_buffers[layer_number][type],bytes,
+    cudaMemcpyHostToDevice), memory_stream_);
 
   return layer_buffers[layer_number][type];
 
@@ -1127,6 +1127,7 @@ void seqNetwork::deallocate_mem_layer_fw(int layer_number, vmm * mem_manager,int
       assert(layer_buffers[i]["output"] != nullptr);
       bytes = layer_buffer_redundant_bytes[i]["output"];
       offload_buffer(i,"output",shape);
+      cudaDeviceSynchronize();
       mem_manager->deleteMem(layer_buffers[i]["output"]);
       layer_buffers[i]["output"] = nullptr;
       if(layer_info[i][0] == "flatten"){
@@ -1200,7 +1201,7 @@ void seqNetwork::allocate_mem_layer_bw(int layer_number, vmm * mem_manager)
 void seqNetwork::deallocate_mem_layer_bw(int layer_number, vmm * mem_manager, int local)
 {
   int i = layer_number,bytes;
-
+  cudaDeviceSynchronize();
   //dinput
   if(local==0){
     if(layer_info[i][0]!="input")
