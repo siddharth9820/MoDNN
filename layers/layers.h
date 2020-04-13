@@ -119,9 +119,12 @@ namespace network
       void randomise_batch(); //randomise input to the neural network
       void update_batch(float* data, int* labels);
       void enqueue_batch(float * batch);
+      void enqueue_batch_loop(int loop_no);
       void randomise_params();
       void forward();
+      void forward_layer(int layer_number);
       void backward();
+      void backward_layer(int layer_number,float beta);
       void train();
       void update_weights();
 
@@ -133,12 +136,15 @@ namespace network
       unsigned sub_batch_size();
       void link_layer_buffer_fw(int layer_number);
       void link_layer_buffer_bw(int layer_number);
-
+      int get_loops();
 
       float* offload_buffer(int layer_number,std::string type,int shape[]); //type is one of "output","workspace","input"
-      void prefetch_buffer(int layer_number,std::string type);
+      float* prefetch_buffer(int layer_number, std::string type,int shape[]);
       void allocate_mem_layer_fw(int layer_number, vmm * mem_manager);
       void allocate_mem_layer_bw(int layer_number, vmm * mem_manager);
+
+      void deallocate_mem_layer_fw(int layer_number, vmm * mem_manager,int local=0);
+      void deallocate_mem_layer_bw(int layer_number, vmm * mem_manager,int local=0);
       void allocate_mem_params(vmm * mem_manager);
 
 
