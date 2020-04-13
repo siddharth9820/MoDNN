@@ -48,14 +48,31 @@ int main(int argc, const char* argv[])
 
 
     //std::vector<std::string> specs = {input_spec,"flatten","fc "+std::to_string(dataset->getLabelDim()),"softmax"};
-    std::vector<std::string> specs = {input_spec,"conv 3 3 3","relu","maxpool 2 2 2 2","flatten","fc 50","relu","fc "+std::to_string(dataset->getLabelDim()),"softmax"};
-    seqNetwork * nn = new seqNetwork(cudnn,cublas,specs,LR,500000);
+    //le net specification
+    std::vector<std::string> specs = {input_spec,
+                                      "conv 5 5 20",
+                                      "relu",
+                                      "maxpool 2 2 2 2",
+                                      "conv 5 5 50",
+                                      "relu",
+                                      "maxpool 2 2 2 2",
+                                      "flatten",
+                                      "fc 500",
+                                      "relu",
+                                      "fc "+std::to_string(dataset->getLabelDim()),
+                                      "softmax"};
 
-    vmm * mem_manager = new vmm(500000,&(nn->layer_buffers));
+
+    int MAX_MEM = 25679040; //25MB
+    int USE_MEM = MAX_MEM/3; //8MB
+
+    seqNetwork * nn = new seqNetwork(cudnn,cublas,specs,LR,USE_MEM);
+    std::cout << nn->get_total_memory() << std::endl;
+    vmm * mem_manager = new vmm(USE_MEM,&(nn->layer_buffers));
 
 
 
-    train_with_minimal_memory(dataloader,dataset,nn, mem_manager,4);
+    train_with_minimal_memory(dataloader,dataset,nn, mem_manager,5);
 
 
 
