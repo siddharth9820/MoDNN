@@ -40,7 +40,7 @@ seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std
   sub_batch_size_ = calculate_sub_batch();
   make_nn_objs(sub_batch_size_);
   total_seqnet_bytes_ = get_total_memory_();
-  cudaStreamCreate(&memory_stream_); 
+  cudaStreamCreate(&memory_stream_);
 }
 
 
@@ -909,7 +909,7 @@ float* seqNetwork::offload_buffer(int layer_number, std::string type,int shape[]
   }
 
   gpuErrchk(cudaMemcpyAsync(layer_offloaded_buffers[layer_number][type],layer_buffers[layer_number][type],bytes,
-    cudaMemcpyDeviceToHost), memory_stream_);
+    cudaMemcpyDeviceToHost, memory_stream_));
 
   if(type == "output" && layer_number < num_layers-1)
     layer_offloaded_buffers[layer_number+1]["input"] = layer_offloaded_buffers[layer_number]["output"];
@@ -1023,7 +1023,7 @@ float* seqNetwork::prefetch_buffer(int layer_number, std::string type,int shape[
   assert (layer_buffers[layer_number][type] != nullptr);           //non empty destination
 
   gpuErrchk(cudaMemcpyAsync(layer_buffers[layer_number][type],layer_offloaded_buffers[layer_number][type],bytes,
-    cudaMemcpyHostToDevice), memory_stream_);
+    cudaMemcpyHostToDevice, memory_stream_));
 
   return layer_buffers[layer_number][type];
 
