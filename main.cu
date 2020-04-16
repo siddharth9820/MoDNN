@@ -4,6 +4,7 @@
 #include "mnist_dataset/mnist.h"
 #include "data_core/data_loader.h"
 #include "trainer/trainer.h"
+#include <cuda_profiler_api.h>
 
 using namespace layers;
 using namespace network;
@@ -31,7 +32,7 @@ int main(int argc, const char* argv[])
     char * label_file = (char*)label_file_str.c_str();
     std::cout << images_file << " "<<label_file << std::endl;
     float* data_batch, *label_batch;
-    unsigned batch_size = 32,rows, sub_batch_size;
+    unsigned batch_size = 128,rows, sub_batch_size;
     unsigned dataset_size, offset;
 
     std::cout << "Creating Dataset" << std::endl;
@@ -63,19 +64,17 @@ int main(int argc, const char* argv[])
                                       "softmax"};
 
 
-    int MAX_MEM = 25679040; //25MB
-    int USE_MEM = MAX_MEM/3; //8MB
 
+    int MAX_MEM = 105458240; //25MB
+    int USE_MEM = MAX_MEM; //8MB
     seqNetwork * nn = new seqNetwork(cudnn,cublas,specs,LR,USE_MEM);
     std::cout << nn->get_total_memory() << std::endl;
-    vmm * mem_manager = new vmm(USE_MEM,&(nn->layer_buffers));
+    vmm * mem_manager = new vmm(nn->get_total_memory(),&(nn->layer_buffers));
 
 
-
+    cudaProfilerStart();
     train_with_minimal_memory(dataloader,dataset,nn, mem_manager,5);
-
-
-
+    cudaProfilerStop();
     return 0;
 
 }

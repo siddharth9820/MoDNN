@@ -211,15 +211,15 @@ void ConvLayer::forward(float alpha, float beta, float* d_input, float* d_kernel
                                        d_output));
   }
 
-void ConvLayer::update_weights(float* d_kernel, float* d_dkernel, float lr) {
+void ConvLayer::update_weights(float* d_kernel, float* d_dkernel, float lr,cudaStream_t compute_stream) {
   int shape[4];
   int size;
   //update filter weights
   size = this->get_params_shape_and_bytes(shape);
   int num_elements = shape[0]*shape[1]*shape[2]*shape[3];
-  update<<<(num_elements/TILE_SIZE)+1,TILE_SIZE>>>(d_kernel,d_dkernel,lr,num_elements);
+  update<<<(num_elements/TILE_SIZE)+1,TILE_SIZE,0,compute_stream>>>(d_kernel,d_dkernel,lr,num_elements);
 }
-  
+
 void ConvLayer::backward(float alpha,
   float beta_filter,
   float beta_data,

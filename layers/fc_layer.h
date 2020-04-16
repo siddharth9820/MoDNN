@@ -19,7 +19,7 @@ class FCLayer : public layers::Layer
     void forward(float* d_input, float * d_kernel, float * d_output); //checked with numpy and working correctly
     void backward(float alpha, float beta_weights, float beta_input, float *d_input, float* d_kernel,float *d_diffkernel,float *d_diffinput, float *d_diffoutput,float lr); //checked with numpy for parameter gradient
     int allocate_internal_mem(float **d_kernel,float **d_diffkernel);
-    void update_weights(float* d_kernel, float* d_diffkernel, float lr);
+    void update_weights(float* d_kernel, float* d_diffkernel, float lr,cudaStream_t compute_stream);
     void populate_filter_params(float *d_kernel);
     int get_input_shape_and_bytes(int shape[]);
     int get_params_shape_and_bytes(int shape[]);
