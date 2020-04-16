@@ -97,12 +97,12 @@ void FCLayer::forward(float * d_input, float * d_kernel, float * d_output)
 
 }
 
-void FCLayer::update_weights(float* d_kernel, float* d_diffkernel, float lr) {
+void FCLayer::update_weights(float* d_kernel, float* d_diffkernel, float lr,cudaStream_t compute_stream) {
   int shape[4];
   this->get_params_shape_and_bytes(shape);
   int num_ele = shape[0]*shape[1];
   //std::cout <<"fc backward "<<TILE_SIZE <<" "<<lr<<std::endl;
-  update<<<(num_ele/TILE_SIZE)+1,(TILE_SIZE)>>>(d_kernel,d_diffkernel,lr,num_ele);
+  update<<<(num_ele/TILE_SIZE)+1,(TILE_SIZE),0,compute_stream>>>(d_kernel,d_diffkernel,lr,num_ele);
 }
 
 void FCLayer::backward(float alpha, float beta_weights, float beta_input,float *d_input, float* d_kernel,float *d_diffkernel,float *d_diffinput, float *d_diffoutput, float lr)

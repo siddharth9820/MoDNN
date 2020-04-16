@@ -37,10 +37,15 @@ seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std
   max_allowed_bytes_ = max_allowed_bytes;
   max_sub_batch_size_ = atoi(layer_info[0][1].c_str());
   min_seqnet_bytes_ = getMemoryLowerBound_();
-  sub_batch_size_ = calculate_sub_batch();
+  sub_batch_size_ = 128;//calculate_sub_batch();
   make_nn_objs(sub_batch_size_);
   total_seqnet_bytes_ = get_total_memory_();
-  cudaStreamCreate(&memory_stream_); 
+  gpuErrchk(cudaStreamCreate(&memory_stream_));
+  gpuErrchk(cudaStreamCreate(&compute_stream_));
+  // std::cout << "Compute stream - "<<compute_stream_ << " Memory stream - " << memory_stream_ << std::endl;
+  checkCUDNN(cudnnSetStream(cudnn,compute_stream_));
+  checkCUBLAS(cublasSetStream(cublas,compute_stream_));
+
 }
 
 
@@ -784,7 +789,7 @@ void seqNetwork::backward_layer(int layer_number,float beta)
    int i = layer_number;
    std::map<std::string,float*> buffer_map = layer_buffers[i];
    std::string layer_type = layer_info[i][0];
-   cudaDeviceSynchronize();
+   //cudaDeviceSynchronize();
    //std::cout << "Backward " << i << " " << layer_info[i][0] << std::endl;
    if(layer_type=="input")return;
    else if(layer_type=="conv")
@@ -825,12 +830,12 @@ void seqNetwork::update_weights() {
     if(layer_type=="conv")
     {
       ConvLayer * layer_obj = (ConvLayer*)(layer_objects[i]);
-      layer_obj -> update_weights( buffer_map["params"], buffer_map["dparams"],lr);
+      layer_obj -> update_weights( buffer_map["params"], buffer_map["dparams"],lr,compute_stream_);
     }
     else if(layer_type=="fc")
     {
       FCLayer * layer_obj = (FCLayer*)(layer_objects[i]);
-      layer_obj -> update_weights( buffer_map["params"],buffer_map["dparams"],lr);
+      layer_obj -> update_weights( buffer_map["params"],buffer_map["dparams"],lr,compute_stream_);
     }
 
   }
@@ -904,12 +909,12 @@ float* seqNetwork::offload_buffer(int layer_number, std::string type,int shape[]
 
   if(layer_offloaded_buffers[layer_number][type] == nullptr){
     //std::cout << "Allocating bytes to the layer buffer " << layer_number <<" " << type<<std::endl;
-    layer_offloaded_buffers[layer_number][type] = (float*)malloc(bytes);
-
+    //layer_offloaded_buffers[layer_number][type] = (float*)malloc(bytes);
+    gpuErrchk(cudaMallocHost((void**)&(layer_offloaded_buffers[layer_number][type]), bytes));
   }
 
   gpuErrchk(cudaMemcpyAsync(layer_offloaded_buffers[layer_number][type],layer_buffers[layer_number][type],bytes,
-    cudaMemcpyDeviceToHost), memory_stream_);
+    cudaMemcpyDeviceToHost, memory_stream_));
 
   if(type == "output" && layer_number < num_layers-1)
     layer_offloaded_buffers[layer_number+1]["input"] = layer_offloaded_buffers[layer_number]["output"];
@@ -1023,7 +1028,7 @@ float* seqNetwork::prefetch_buffer(int layer_number, std::string type,int shape[
   assert (layer_buffers[layer_number][type] != nullptr);           //non empty destination
 
   gpuErrchk(cudaMemcpyAsync(layer_buffers[layer_number][type],layer_offloaded_buffers[layer_number][type],bytes,
-    cudaMemcpyHostToDevice), memory_stream_);
+    cudaMemcpyHostToDevice, memory_stream_));
 
   return layer_buffers[layer_number][type];
 
@@ -1145,15 +1150,18 @@ void seqNetwork::deallocate_mem_layer_fw(int layer_number, vmm * mem_manager,int
     assert(layer_buffers[i]["labels"] != nullptr);
     bytes = layer_buffer_redundant_bytes[i]["labels"];
     offload_buffer(i,"labels",shape);
+    cudaDeviceSynchronize();
     mem_manager->deleteMem(layer_buffers[i]["labels"]);
     layer_buffers[i]["labels"] = nullptr;
   }
   if(layer_info[i][0] == "conv")
   {
-    assert(layer_buffers[i]["workspace"] != nullptr);
-    bytes = layer_buffer_redundant_bytes[i]["workspace"];
-    mem_manager->deleteMem(layer_buffers[i]["workspace"]);
-    layer_buffers[i]["workspace"] = nullptr;
+    //assert(layer_buffers[i]["workspace"] != nullptr);
+    if(layer_buffers[i]["workspace"] != nullptr){
+      bytes = layer_buffer_redundant_bytes[i]["workspace"];
+      mem_manager->deleteMem(layer_buffers[i]["workspace"]);
+      layer_buffers[i]["workspace"] = nullptr;
+    }
   }
 
 }
@@ -1195,13 +1203,15 @@ void seqNetwork::allocate_mem_layer_bw(int layer_number, vmm * mem_manager)
     prefetch_buffer(i,"input",shape);
     //prefetch input
   }
+  if(layer_info[i][0] == "conv" || layer_info[i][0] == "fc"|| layer_info[i][0] == "relu"||layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool")
+    cudaDeviceSynchronize();
 
 }
 
 void seqNetwork::deallocate_mem_layer_bw(int layer_number, vmm * mem_manager, int local)
 {
   int i = layer_number,bytes;
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   //dinput
   if(local==0){
     if(layer_info[i][0]!="input")
@@ -1226,9 +1236,10 @@ void seqNetwork::deallocate_mem_layer_bw(int layer_number, vmm * mem_manager, in
   //workspace
   if(layer_info[i][0] == "conv")
   {
-    assert(layer_buffers[i]["workspace"] != nullptr);
+    if(layer_buffers[i]["workspace"] != nullptr){
     mem_manager->deleteMem(layer_buffers[i]["workspace"]);
     layer_buffers[i]["workspace"] = nullptr;
+    }
   }
   //output
   if(layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool" || layer_info[i][0] == "relu" || layer_info[i][0] == "softmax")
@@ -1286,5 +1297,8 @@ seqNetwork::~seqNetwork()
     if(layer_info[i][0]=="input")
       cudaFree(layer_buffers[i]["labels"]);
 
+
+
   }
+
 }

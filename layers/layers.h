@@ -162,6 +162,7 @@ namespace network
 
       unsigned max_sub_batch_size_;
       cudaStream_t memory_stream_;
+      cudaStream_t compute_stream_;
       unsigned sub_batch_size_;
       unsigned max_allowed_bytes_;
       unsigned weights_memory_bytes_;
