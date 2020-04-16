@@ -1171,6 +1171,7 @@ void seqNetwork::deallocate_mem_layer_fw(int layer_number, vmm * mem_manager,int
   {
     assert(layer_buffers[i]["workspace"] != nullptr);
     bytes = layer_buffer_redundant_bytes[i]["workspace"];
+    cudaDeviceSynchronize();
     mem_manager->deleteMem(layer_buffers[i]["workspace"]);
     layer_buffers[i]["workspace"] = nullptr;
   }
@@ -1178,6 +1179,48 @@ void seqNetwork::deallocate_mem_layer_fw(int layer_number, vmm * mem_manager,int
 }
 
 void seqNetwork::allocate_mem_layer_bw(int layer_number, vmm * mem_manager)
+{
+  int i = layer_number,bytes;
+  int shape[4];
+
+  if(layer_info[i][0]!="flatten" && layer_info[i][0]!="input")
+  {
+    assert(layer_buffers[i]["dinput"] == nullptr);
+    bytes = layer_buffer_redundant_bytes[i]["dinput"];
+    mem_manager->allocate(&layer_buffers[i]["dinput"],bytes,layer_info[i][0]+" layer - dinput");
+  } else {
+    prefetch_status_[i] = true;
+  }
+  //workspace
+  if(layer_info[i][0] == "conv")
+  {
+    assert(layer_buffers[i]["workspace"] == nullptr);
+    bytes = layer_buffer_redundant_bytes[i]["workspace"];
+    mem_manager->allocate(&layer_buffers[i]["workspace"],bytes,"conv layer - workspace");
+  }
+  //output
+  if(layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool" || layer_info[i][0] == "relu")
+  {
+    assert(layer_buffers[i]["output"] == nullptr);
+    bytes = layer_buffer_redundant_bytes[i]["output"];
+    mem_manager->allocate(&layer_buffers[i]["output"],bytes,layer_info[i][0]+ " output");
+    //prefetch output
+    prefetch_buffer(i,"output",shape);
+  }
+  //input
+  if(layer_info[i][0] == "conv" || layer_info[i][0] == "fc"|| layer_info[i][0] == "relu"||layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool")
+  {
+    assert(layer_buffers[i]["input"] == nullptr);
+    bytes = layer_buffer_redundant_bytes[i]["input"];
+    mem_manager->allocate(&layer_buffers[i]["input"],bytes,layer_info[i][0]+ " input");
+    prefetch_buffer(i,"input",shape);
+    //prefetch input
+  }
+
+  // std::cout <<"Prefetched " <<  layer_info[i][0] << "\n"; 
+}
+  
+void seqNetwork::allocate_mem_layer_bw_h1(int layer_number, vmm * mem_manager)
 {
   int i = layer_number,bytes;
   int shape[4];
@@ -1226,7 +1269,7 @@ void seqNetwork::allocate_mem_layer_bw(int layer_number, vmm * mem_manager)
     if (layer_info[i][0] == "conv") { 
       break;
     }
-    
+
     if (i == num_layers-1) { 
       cudaDeviceSynchronize();
     }
