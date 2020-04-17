@@ -25,6 +25,7 @@ enum padding_type{
 #define MU 0
 #define SIGMA 0.1
 #define LR 0.0001
+#define BATCH_SIZE 128
 #define TILE_SIZE  32
 #define BLOCK_SIZE 8
 
@@ -112,7 +113,7 @@ namespace network
       cublasHandle_t blas_handle;
 
 
-      seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std::string> &specs, float lr, unsigned max_allowed_bytes);
+      seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std::string> &specs, float lr, unsigned max_allowed_bytes,int sub_batch_selection);
       void print_network_info();
 
       void get_output_shape(int shape[], int i);
@@ -137,8 +138,9 @@ namespace network
       void link_layer_buffer_fw(int layer_number);
       void link_layer_buffer_bw(int layer_number);
       int get_loops();
+      int get_max_batch_size();
 
-      float* offload_buffer(int layer_number,std::string type,int shape[]); //type is one of "output","workspace","input"
+      float* offload_buffer(int layer_number,std::string type,int shape[],int async=1); //type is one of "output","workspace","input"
       float* prefetch_buffer(int layer_number, std::string type,int shape[]);
       void allocate_mem_layer_fw(int layer_number, vmm * mem_manager);
       void allocate_mem_layer_bw(int layer_number, vmm * mem_manager);

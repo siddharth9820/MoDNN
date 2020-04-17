@@ -1,10 +1,10 @@
 #include "trainer.h"
-#define ONE_ITER false
+#define ONE_ITER true
 #define PRINT_OUTPUT false
 
 void train_with_minimal_memory(DataLoader * dataloader,Dataset * dataset,seqNetwork * nn, vmm * mem_manager, int epochs)
 {
-  int dataset_size = dataset->getDatasetSize(),batch_size = 128;
+  int dataset_size = dataset->getDatasetSize(),batch_size = nn->get_max_batch_size();
   float* data_batch, *label_batch;
   int* label_batch_integer = (int*)malloc(sizeof(int)*batch_size);
   float * output,loss;
@@ -76,13 +76,13 @@ void train_with_minimal_memory(DataLoader * dataloader,Dataset * dataset,seqNetw
               nn->link_layer_buffer_fw(i-1);
               if( ONE_ITER && PRINT_OUTPUT)
               {
-                output = nn->offload_buffer(i,"output",shape);
+                output = nn->offload_buffer(i,"output",shape,1);
                 cudaDeviceSynchronize();
                 print_output(output,shape);
               }
             }
         }
-        output = nn->offload_buffer(nn->num_layers-1,"output",shape);
+        output = nn->offload_buffer(nn->num_layers-1,"output",shape,1);
         cudaDeviceSynchronize();
         epoch_loss += categorical_cross_entropy_loss(output,shape,label_batch_integer+loop_no*sub_batch_size);
         //backward
