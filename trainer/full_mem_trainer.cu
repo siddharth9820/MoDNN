@@ -2,7 +2,7 @@
 
 void train_with_full_memory(DataLoader * dataloader,Dataset * dataset,seqNetwork * nn, vmm * mem_manager, int epochs)
 {
-  int dataset_size = dataset->getDatasetSize(),batch_size = 32;
+  int dataset_size = dataset->getDatasetSize(),batch_size = nn->get_max_batch_size();
   float* data_batch, *label_batch;
   int* label_batch_integer = (int*)malloc(sizeof(int)*batch_size);
 
@@ -61,7 +61,7 @@ void train_with_full_memory(DataLoader * dataloader,Dataset * dataset,seqNetwork
       nn->update_weights();
       if(j%PRINT_EVERY==0)
       {
-        output = nn->offload_buffer(nn->num_layers-1,"output",shape);
+        output = nn->offload_buffer(nn->num_layers-1,"output",shape,0);
         loss += categorical_cross_entropy_loss(output,shape,label_batch_integer+offset);
       }
 

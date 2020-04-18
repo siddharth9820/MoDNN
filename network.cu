@@ -11,7 +11,7 @@
 using namespace network;
 using namespace layers;
 
-seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std::string> &specs,float lr, unsigned max_allowed_bytes)
+seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std::string> &specs,float lr, unsigned max_allowed_bytes,int sub_batch_selection=0)
 {
   /*
   Specs is a vector of strings specifying the Neural Network.
@@ -37,7 +37,10 @@ seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std
   max_allowed_bytes_ = max_allowed_bytes;
   max_sub_batch_size_ = atoi(layer_info[0][1].c_str());
   min_seqnet_bytes_ = getMemoryLowerBound_();
-  sub_batch_size_ = 128;//calculate_sub_batch();
+  if(sub_batch_selection == 0)
+    sub_batch_size_ = max_sub_batch_size_;
+  else
+    max_sub_batch_size_ = calculate_sub_batch();
   make_nn_objs(sub_batch_size_);
   total_seqnet_bytes_ = get_total_memory_();
   gpuErrchk(cudaStreamCreate(&memory_stream_));
@@ -841,7 +844,7 @@ void seqNetwork::update_weights() {
   }
 }
 
-float* seqNetwork::offload_buffer(int layer_number, std::string type,int shape[])
+float* seqNetwork::offload_buffer(int layer_number, std::string type,int shape[],int async)
 {
   int bytes;
   std::string layer_type = layer_info[layer_number][0];
@@ -913,8 +916,17 @@ float* seqNetwork::offload_buffer(int layer_number, std::string type,int shape[]
     gpuErrchk(cudaMallocHost((void**)&(layer_offloaded_buffers[layer_number][type]), bytes));
   }
 
-  gpuErrchk(cudaMemcpyAsync(layer_offloaded_buffers[layer_number][type],layer_buffers[layer_number][type],bytes,
-    cudaMemcpyDeviceToHost, memory_stream_));
+  if(async)
+  {
+    gpuErrchk(cudaMemcpyAsync(layer_offloaded_buffers[layer_number][type],layer_buffers[layer_number][type],bytes,
+      cudaMemcpyDeviceToHost, memory_stream_));
+  }
+  else
+  {
+    gpuErrchk(cudaMemcpy(layer_offloaded_buffers[layer_number][type],layer_buffers[layer_number][type],bytes,
+      cudaMemcpyDeviceToHost));
+  }
+
 
   if(type == "output" && layer_number < num_layers-1)
     layer_offloaded_buffers[layer_number+1]["input"] = layer_offloaded_buffers[layer_number]["output"];
@@ -1278,6 +1290,10 @@ void seqNetwork::link_layer_buffer_bw(int layer_number)
 
 }
 
+int seqNetwork::get_max_batch_size()
+{
+  return this->max_sub_batch_size_;
+}
 
 seqNetwork::~seqNetwork()
 {

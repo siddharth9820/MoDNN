@@ -32,7 +32,7 @@ int main(int argc, const char* argv[])
     char * label_file = (char*)label_file_str.c_str();
     std::cout << images_file << " "<<label_file << std::endl;
     float* data_batch, *label_batch;
-    unsigned batch_size = 128,rows, sub_batch_size;
+    unsigned batch_size = BATCH_SIZE,rows, sub_batch_size;
     unsigned dataset_size, offset;
 
     std::cout << "Creating Dataset" << std::endl;
@@ -65,16 +65,17 @@ int main(int argc, const char* argv[])
 
 
 
-    int MAX_MEM = 105458240; //25MB
-    int USE_MEM = MAX_MEM; //8MB
-    seqNetwork * nn = new seqNetwork(cudnn,cublas,specs,LR,USE_MEM);
-    std::cout << nn->get_total_memory() << std::endl;
+    // int MAX_MEM = 105458240; //25MB
+    // int USE_MEM = MAX_MEM; //8MB
+    seqNetwork * nn = new seqNetwork(cudnn,cublas,specs,LR,0,0);
+    std::cout << (float)nn->get_total_memory()/1000000 << " MB " <<std::endl;
     vmm * mem_manager = new vmm(nn->get_total_memory(),&(nn->layer_buffers));
 
 
-    cudaProfilerStart();
-    train_with_minimal_memory(dataloader,dataset,nn, mem_manager,5);
-    cudaProfilerStop();
+    // cudaProfilerStart();
+     //train_with_minimal_memory(dataloader,dataset,nn, mem_manager,5);
+    train_with_full_memory(dataloader,dataset,nn,mem_manager,1);
+    // cudaProfilerStop();
     return 0;
 
 }
