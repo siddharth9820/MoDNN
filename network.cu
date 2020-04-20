@@ -45,8 +45,11 @@ seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std
     sub_batch_size_ = max_sub_batch_size_;
   else
     sub_batch_size_ = calculate_sub_batch();
+
+  std::cout << "Subbatch size : " << sub_batch_size_ << std::endl;
   make_nn_objs(sub_batch_size_);
   total_seqnet_bytes_ = get_total_memory_();
+
   gpuErrchk(cudaStreamCreate(&memory_stream_));
   gpuErrchk(cudaStreamCreate(&compute_stream_));
   // std::cout << "Compute stream - "<<compute_stream_ << " Memory stream - " << memory_stream_ << std::endl;
@@ -1227,10 +1230,79 @@ void seqNetwork::allocate_mem_layer_bw(int layer_number, vmm * mem_manager)
 
 }
 
+void seqNetwork::allocate_mem_layer_bw_h1(int layer_number, vmm * mem_manager)
+{
+  int i = layer_number,bytes;
+  int shape[4];
+
+  int alphaT = ceil(0.15*2*num_layers);
+  if (layer_number == num_layers-1) {
+    prefetch_trigger_layer_no_ = layer_number;
+    last_prefetched_layer_no_ = num_layers;
+  }
+
+  if (layer_number == prefetch_trigger_layer_no_) {
+    prefetch_trigger_layer_no_ = last_prefetched_layer_no_-1 - (alphaT/2);
+    if (layer_number == num_layers-1)
+      sync_layer_no_ = last_prefetched_layer_no_ - 2;
+    else 
+      sync_layer_no_ = last_prefetched_layer_no_ - 1;
+    
+    for (int i = last_prefetched_layer_no_-1; i >= 0 && i > last_prefetched_layer_no_-1-alphaT; i--) {
+    //dinput
+      if(layer_info[i][0]!="flatten" && layer_info[i][0]!="input")
+      {
+        assert(layer_buffers[i]["dinput"] == nullptr);
+        bytes = layer_buffer_redundant_bytes[i]["dinput"];
+        mem_manager->allocate(&layer_buffers[i]["dinput"],bytes,layer_info[i][0]+" layer - dinput");
+      }
+      //workspace
+      if(layer_info[i][0] == "conv")
+      {
+        assert(layer_buffers[i]["workspace"] == nullptr);
+        bytes = layer_buffer_redundant_bytes[i]["workspace"];
+        mem_manager->allocate(&layer_buffers[i]["workspace"],bytes,"conv layer - workspace");
+      }
+      //output
+      if(layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool" || layer_info[i][0] == "relu")
+      {
+        assert(layer_buffers[i]["output"] == nullptr);
+        bytes = layer_buffer_redundant_bytes[i]["output"];
+        mem_manager->allocate(&layer_buffers[i]["output"],bytes,layer_info[i][0]+ " output");
+        //prefetch output
+        prefetch_buffer(i,"output",shape);
+      }
+      //input
+      if(layer_info[i][0] == "conv" || layer_info[i][0] == "fc"|| layer_info[i][0] == "relu"||layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool")
+      {
+        assert(layer_buffers[i]["input"] == nullptr);
+        bytes = layer_buffer_redundant_bytes[i]["input"];
+        mem_manager->allocate(&layer_buffers[i]["input"],bytes,layer_info[i][0]+ " input");
+        prefetch_buffer(i,"input",shape);
+        //prefetch input
+      }
+      
+      link_layer_buffer_bw(i);
+
+      // if(layer_info[i][0] == "conv" || layer_info[i][0] == "fc"|| layer_info[i][0] == "relu" || layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool")
+      //   cudaDeviceSynchronize();
+      
+    }
+
+    last_prefetched_layer_no_ = last_prefetched_layer_no_ - alphaT;
+    
+    // std::cout << "prefetch_trigger_layer_no : " << prefetch_trigger_layer_no_ << " sync_layer_no_ : "<<sync_layer_no_<< " last_prefetch_layer_no : " << last_prefetched_layer_no_ << std::endl;
+  }
+
+  if (layer_number == sync_layer_no_)
+    cudaDeviceSynchronize();
+    
+}
+
 void seqNetwork::deallocate_mem_layer_bw(int layer_number, vmm * mem_manager, int local)
 {
   int i = layer_number,bytes;
-  //cudaDeviceSynchronize();
+  // cudaDeviceSynchronize();
   //dinput
   if(local==0){
     if(layer_info[i][0]!="input")

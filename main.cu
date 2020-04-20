@@ -69,12 +69,12 @@ int main(int argc, const char* argv[])
     // int USE_MEM = MAX_MEM; //8MB
     seqNetwork * nn = new seqNetwork(cudnn,cublas,specs,LR,0,0);
     std::cout << (float)nn->get_total_memory()/1000000 << " MB " <<std::endl;
-    vmm * mem_manager = new vmm(nn->get_total_memory(),&(nn->layer_buffers));
+    vmm * mem_manager = new vmm(2*nn->get_total_memory(),&(nn->layer_buffers));
 
 
     // cudaProfilerStart();
-     //train_with_minimal_memory(dataloader,dataset,nn, mem_manager,5);
-    train_with_full_memory(dataloader,dataset,nn,mem_manager,2);
+     train_with_minimal_memory(dataloader,dataset,nn, mem_manager,5);
+    // train_with_full_memory(dataloader,dataset,nn,mem_manager,5);
     // cudaProfilerStop();
     return 0;
 
