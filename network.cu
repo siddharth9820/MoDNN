@@ -37,10 +37,14 @@ seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std
   max_allowed_bytes_ = max_allowed_bytes;
   max_sub_batch_size_ = atoi(layer_info[0][1].c_str());
   min_seqnet_bytes_ = getMemoryLowerBound_();
+
+  make_nn_objs(max_sub_batch_size_);
+  max_seqnet_memory_ = get_total_memory_();
+  
   if(sub_batch_selection == 0)
     sub_batch_size_ = max_sub_batch_size_;
   else
-    max_sub_batch_size_ = calculate_sub_batch();
+    sub_batch_size_ = calculate_sub_batch();
   make_nn_objs(sub_batch_size_);
   total_seqnet_bytes_ = get_total_memory_();
   gpuErrchk(cudaStreamCreate(&memory_stream_));
@@ -51,6 +55,9 @@ seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std
 
 }
 
+unsigned seqNetwork::get_max_memory() {
+  return max_seqnet_memory_;
+}
 
 unsigned seqNetwork::getMemoryLowerBound() {
   return min_seqnet_bytes_;

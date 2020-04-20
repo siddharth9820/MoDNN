@@ -130,6 +130,7 @@ namespace network
       void update_weights();
 
       int get_total_memory();
+      unsigned get_max_memory();
       void allocate_all_memory(vmm * mem_manager);
 
 
@@ -170,6 +171,7 @@ namespace network
       unsigned weights_memory_bytes_;
       unsigned total_seqnet_bytes_;
       unsigned min_seqnet_bytes_;
+      unsigned max_seqnet_memory_;
       float* batch_data_;
       int* batch_labels_;
   };

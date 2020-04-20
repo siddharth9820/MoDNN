@@ -1,5 +1,5 @@
 #include "trainer.h"
-#define ONE_ITER true
+#define ONE_ITER false
 #define PRINT_OUTPUT false
 
 void train_with_minimal_memory(DataLoader * dataloader,Dataset * dataset,seqNetwork * nn, vmm * mem_manager, int epochs)
