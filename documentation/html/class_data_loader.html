@@ -98,7 +98,7 @@ Collaboration diagram for DataLoader:</div>
 <div class="dyncontent">
 <div class="center"><img src="class_data_loader__coll__graph.png" border="0" usemap="#_data_loader_coll__map" alt="Collaboration graph"/></div>
 <map name="_data_loader_coll__map" id="_data_loader_coll__map">
-<area shape="rect" id="node3" href="class_dataset.html" title="Dataset" alt="" coords="102,124,170,151"/>
+<area shape="rect" id="node3" href="class_dataset.html" title="Abstract class Dataset. " alt="" coords="102,124,170,151"/>
 </map>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
@@ -132,7 +132,7 @@ Private Attributes</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock">
-<p>Definition at line <a class="el" href="data__loader_8h_source.html#l00006">6</a> of file <a class="el" href="data__loader_8h_source.html">data_loader.h</a>.</p>
+<p>Definition at line <a class="el" href="data__loader_8h_source.html#l00010">10</a> of file <a class="el" href="data__loader_8h_source.html">data_loader.h</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a class="anchor" id="a11c36e4b9c6326f272cb8052fb0bb6bf"></a>
 <div class="memitem">
@@ -157,6 +157,13 @@ Private Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Initializes <a class="el" href="class_data_loader.html">DataLoader</a> class. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">dataset</td><td><a class="el" href="class_dataset.html" title="Abstract class Dataset. ">Dataset</a> to initialize to. </td></tr>
+    <tr><td class="paramname">batch_size</td><td>number of data items to access in a single batch. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -172,6 +179,7 @@ Private Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Destroy <a class="el" href="class_data_loader.html">DataLoader</a> </p>
 
 </div>
 </div>
@@ -199,6 +207,13 @@ Private Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Returns a batch of data items and their labels in data and labels respectively. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">data</td><td>stores the data items in it for returning. </td></tr>
+    <tr><td class="paramname">labels</td><td>stores the labels in it for returning. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 <p>Referenced by <a class="el" href="mnist__test_8cpp_source.html#l00007">main()</a>.</p>
 
@@ -226,6 +241,7 @@ Here is the caller graph for this function:</div>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Returns the batch size </p>
 
 </div>
 </div>
@@ -241,6 +257,7 @@ Here is the caller graph for this function:</div>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>resets the index to the first element in the dataset </p>
 
 </div>
 </div>
@@ -262,8 +279,9 @@ Here is the caller graph for this function:</div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>number of data items to be read together. </p>
 
-<p>Definition at line <a class="el" href="data__loader_8h_source.html#l00008">8</a> of file <a class="el" href="data__loader_8h_source.html">data_loader.h</a>.</p>
+<p>Definition at line <a class="el" href="data__loader_8h_source.html#l00012">12</a> of file <a class="el" href="data__loader_8h_source.html">data_loader.h</a>.</p>
 
 </div>
 </div>
@@ -284,8 +302,9 @@ Here is the caller graph for this function:</div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>stores a data item . </p>
 
-<p>Definition at line <a class="el" href="data__loader_8h_source.html#l00012">12</a> of file <a class="el" href="data__loader_8h_source.html">data_loader.h</a>.</p>
+<p>Definition at line <a class="el" href="data__loader_8h_source.html#l00016">16</a> of file <a class="el" href="data__loader_8h_source.html">data_loader.h</a>.</p>
 
 </div>
 </div>
@@ -306,8 +325,9 @@ Here is the caller graph for this function:</div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>pointer to the dataset and its methods. </p>
 
-<p>Definition at line <a class="el" href="data__loader_8h_source.html#l00011">11</a> of file <a class="el" href="data__loader_8h_source.html">data_loader.h</a>.</p>
+<p>Definition at line <a class="el" href="data__loader_8h_source.html#l00015">15</a> of file <a class="el" href="data__loader_8h_source.html">data_loader.h</a>.</p>
 
 </div>
 </div>
@@ -328,8 +348,9 @@ Here is the caller graph for this function:</div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>current index of the data in the dataset to be read. </p>
 
-<p>Definition at line <a class="el" href="data__loader_8h_source.html#l00009">9</a> of file <a class="el" href="data__loader_8h_source.html">data_loader.h</a>.</p>
+<p>Definition at line <a class="el" href="data__loader_8h_source.html#l00013">13</a> of file <a class="el" href="data__loader_8h_source.html">data_loader.h</a>.</p>
 
 </div>
 </div>
@@ -350,8 +371,9 @@ Here is the caller graph for this function:</div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>stores the label for the data_buffer_. </p>
 
-<p>Definition at line <a class="el" href="data__loader_8h_source.html#l00013">13</a> of file <a class="el" href="data__loader_8h_source.html">data_loader.h</a>.</p>
+<p>Definition at line <a class="el" href="data__loader_8h_source.html#l00017">17</a> of file <a class="el" href="data__loader_8h_source.html">data_loader.h</a>.</p>
 
 </div>
 </div>
@@ -372,8 +394,9 @@ Here is the caller graph for this function:</div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>maximum number of elements in the dataset. </p>
 
-<p>Definition at line <a class="el" href="data__loader_8h_source.html#l00010">10</a> of file <a class="el" href="data__loader_8h_source.html">data_loader.h</a>.</p>
+<p>Definition at line <a class="el" href="data__loader_8h_source.html#l00014">14</a> of file <a class="el" href="data__loader_8h_source.html">data_loader.h</a>.</p>
 
 </div>
 </div>
@@ -383,7 +406,7 @@ Here is the caller graph for this function:</div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Wed Apr 22 2020 12:27:20 for MoDNN by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Wed Apr 22 2020 13:01:42 for MoDNN by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

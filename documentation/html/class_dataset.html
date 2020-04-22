@@ -92,6 +92,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </div><!--header-->
 <div class="contents">
 
+<p>Abstract class <a class="el" href="class_dataset.html" title="Abstract class Dataset. ">Dataset</a>.  
+ <a href="class_dataset.html#details">More...</a></p>
+
 <p><code>#include &lt;<a class="el" href="dataset_8h_source.html">dataset.h</a>&gt;</code></p>
 <div class="dynheader">
 Inheritance diagram for Dataset:</div>
@@ -105,8 +108,6 @@ Inheritance diagram for Dataset:</div>
 Collaboration diagram for Dataset:</div>
 <div class="dyncontent">
 <div class="center"><img src="class_dataset__coll__graph.png" border="0" usemap="#_dataset_coll__map" alt="Collaboration graph"/></div>
-<map name="_dataset_coll__map" id="_dataset_coll__map">
-</map>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
@@ -134,8 +135,11 @@ Protected Attributes</h2></td></tr>
 <tr class="separator:af5031be67074800d544d81056b23438e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock">
-<p>Definition at line <a class="el" href="dataset_8h_source.html#l00006">6</a> of file <a class="el" href="dataset_8h_source.html">dataset.h</a>.</p>
+<div class="textblock"><p>Abstract class <a class="el" href="class_dataset.html" title="Abstract class Dataset. ">Dataset</a>. </p>
+<p>This class is used to load the data and store it in the buffer.</p>
+<p>This class is inherited by the datasets used (mnist_dataset for now). </p>
+
+<p>Definition at line <a class="el" href="dataset_8h_source.html#l00011">11</a> of file <a class="el" href="dataset_8h_source.html">dataset.h</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a class="anchor" id="aca6a1f976e4cba16c6d2ac12bf58c850"></a>
 <div class="memitem">
@@ -174,6 +178,12 @@ Protected Attributes</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>returns the data item and label present at index. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">index</td><td>index of the data item and label to fetch </td></tr>
+  </table>
+  </dd>
+</dl>
 
 <p>Implemented in <a class="el" href="class_m_n_i_s_t.html#a1c140d1dc94624317a505b81c1d7a384">MNIST</a>.</p>
 
@@ -222,6 +232,12 @@ Protected Attributes</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>returns all the data items and labels in the range from index start variable to index end variable. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">start</td><td>start index of the range  end end index of the range </td></tr>
+  </table>
+  </dd>
+</dl>
 
 <p>Implemented in <a class="el" href="class_m_n_i_s_t.html#a19f48be31e9e0bfc93945385aa01220f">MNIST</a>.</p>
 
@@ -247,6 +263,7 @@ Protected Attributes</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>returns the number of elements in the dataset. </p>
 
 <p>Implemented in <a class="el" href="class_m_n_i_s_t.html#a249fd7a99817ba8f3957bb485d6a10f0">MNIST</a>.</p>
 
@@ -284,6 +301,7 @@ Here is the caller graph for this function:</div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>returns the size of a data item. </p>
 
 <p>Implemented in <a class="el" href="class_m_n_i_s_t.html#a888b56e5615e09c8cff79b2c38899bf7">MNIST</a>.</p>
 
@@ -321,6 +339,7 @@ Here is the caller graph for this function:</div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>returns the size of a label. </p>
 
 <p>Implemented in <a class="el" href="class_m_n_i_s_t.html#a3e6a62d84c82a1b57cf5fbc99418ee39">MNIST</a>.</p>
 
@@ -346,6 +365,7 @@ Here is the caller graph for this function:</div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>randomly shuffles the dataset. </p>
 
 <p>Implemented in <a class="el" href="class_m_n_i_s_t.html#ab4cee6b3049d501741ad1689ebc645ce">MNIST</a>.</p>
 
@@ -369,8 +389,9 @@ Here is the caller graph for this function:</div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>stores the number of elements in dataset. </p>
 
-<p>Definition at line <a class="el" href="dataset_8h_source.html#l00008">8</a> of file <a class="el" href="dataset_8h_source.html">dataset.h</a>.</p>
+<p>Definition at line <a class="el" href="dataset_8h_source.html#l00013">13</a> of file <a class="el" href="dataset_8h_source.html">dataset.h</a>.</p>
 
 <p>Referenced by <a class="el" href="mnist_8cpp_source.html#l00095">MNIST::getDatasetSize()</a>, <a class="el" href="mnist_8cpp_source.html#l00037">MNIST::parse_images_file()</a>, and <a class="el" href="mnist_8cpp_source.html#l00067">MNIST::parse_labels_file()</a>.</p>
 
@@ -393,8 +414,9 @@ Here is the caller graph for this function:</div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>stores the size of a data item without label. </p>
 
-<p>Definition at line <a class="el" href="dataset_8h_source.html#l00009">9</a> of file <a class="el" href="dataset_8h_source.html">dataset.h</a>.</p>
+<p>Definition at line <a class="el" href="dataset_8h_source.html#l00014">14</a> of file <a class="el" href="dataset_8h_source.html">dataset.h</a>.</p>
 
 <p>Referenced by <a class="el" href="mnist_8cpp_source.html#l00099">MNIST::get_item()</a>, <a class="el" href="mnist_8cpp_source.html#l00104">MNIST::get_item_range()</a>, <a class="el" href="mnist_8cpp_source.html#l00087">MNIST::getInputDim()</a>, and <a class="el" href="mnist_8cpp_source.html#l00037">MNIST::parse_images_file()</a>.</p>
 
@@ -417,8 +439,9 @@ Here is the caller graph for this function:</div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>stores the size of label. </p>
 
-<p>Definition at line <a class="el" href="dataset_8h_source.html#l00010">10</a> of file <a class="el" href="dataset_8h_source.html">dataset.h</a>.</p>
+<p>Definition at line <a class="el" href="dataset_8h_source.html#l00015">15</a> of file <a class="el" href="dataset_8h_source.html">dataset.h</a>.</p>
 
 <p>Referenced by <a class="el" href="mnist_8cpp_source.html#l00099">MNIST::get_item()</a>, <a class="el" href="mnist_8cpp_source.html#l00104">MNIST::get_item_range()</a>, and <a class="el" href="mnist_8cpp_source.html#l00013">MNIST::MNIST()</a>.</p>
 
@@ -430,7 +453,7 @@ Here is the caller graph for this function:</div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Wed Apr 22 2020 12:27:20 for MoDNN by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Wed Apr 22 2020 13:01:42 for MoDNN by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

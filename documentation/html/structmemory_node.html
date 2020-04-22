@@ -124,8 +124,9 @@ Data Fields</h2></td></tr>
 <tr class="separator:a73eadf9618badb351913a497b6162d74"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock">
-<p>Definition at line <a class="el" href="vmm_8h_source.html#l00016">16</a> of file <a class="el" href="vmm_8h_source.html">vmm.h</a>.</p>
+<div class="textblock"><p>represents a memory node in the linkedlist </p>
+
+<p>Definition at line <a class="el" href="vmm_8h_source.html#l00019">19</a> of file <a class="el" href="vmm_8h_source.html">vmm.h</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a class="anchor" id="a434a22d922d5bb6c5bdefde55b902b39"></a>
 <div class="memitem">
@@ -148,8 +149,8 @@ Data Fields</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="vmm_8h_source.html#l00023">23</a> of file <a class="el" href="vmm_8h_source.html">vmm.h</a>.</p>
-<div class="fragment"><div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;                {</div><div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;    <a class="code" href="structmemory_node.html#a73eadf9618badb351913a497b6162d74">next</a> = NULL;</div><div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;  }</div><div class="ttc" id="structmemory_node_html_a73eadf9618badb351913a497b6162d74"><div class="ttname"><a href="structmemory_node.html#a73eadf9618badb351913a497b6162d74">memoryNode::next</a></div><div class="ttdeci">struct memoryNode * next</div><div class="ttdef"><b>Definition:</b> <a href="vmm_8h_source.html#l00022">vmm.h:22</a></div></div>
+<p>Definition at line <a class="el" href="vmm_8h_source.html#l00026">26</a> of file <a class="el" href="vmm_8h_source.html">vmm.h</a>.</p>
+<div class="fragment"><div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;                {</div><div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;    <a class="code" href="structmemory_node.html#a73eadf9618badb351913a497b6162d74">next</a> = NULL;</div><div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;  }</div><div class="ttc" id="structmemory_node_html_a73eadf9618badb351913a497b6162d74"><div class="ttname"><a href="structmemory_node.html#a73eadf9618badb351913a497b6162d74">memoryNode::next</a></div><div class="ttdeci">struct memoryNode * next</div><div class="ttdef"><b>Definition:</b> <a href="vmm_8h_source.html#l00025">vmm.h:25</a></div></div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -163,8 +164,9 @@ Data Fields</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>stores the address of the pointer which used to access this memory node . </p>
 
-<p>Definition at line <a class="el" href="vmm_8h_source.html#l00018">18</a> of file <a class="el" href="vmm_8h_source.html">vmm.h</a>.</p>
+<p>Definition at line <a class="el" href="vmm_8h_source.html#l00021">21</a> of file <a class="el" href="vmm_8h_source.html">vmm.h</a>.</p>
 
 <p>Referenced by <a class="el" href="vmm_8cpp_source.html#l00144">vmm::allocateHelper()</a>, <a class="el" href="vmm_8cpp_source.html#l00037">vmm::defragmentMem()</a>, <a class="el" href="vmm_8cpp_source.html#l00181">vmm::deleteMem()</a>, <a class="el" href="vmm_8cpp_source.html#l00199">vmm::printNodes()</a>, and <a class="el" href="vmm_8cpp_source.html#l00005">vmm::vmm()</a>.</p>
 
@@ -179,8 +181,9 @@ Data Fields</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>stores if the node is free or not. </p>
 
-<p>Definition at line <a class="el" href="vmm_8h_source.html#l00020">20</a> of file <a class="el" href="vmm_8h_source.html">vmm.h</a>.</p>
+<p>Definition at line <a class="el" href="vmm_8h_source.html#l00023">23</a> of file <a class="el" href="vmm_8h_source.html">vmm.h</a>.</p>
 
 <p>Referenced by <a class="el" href="vmm_8cpp_source.html#l00144">vmm::allocateHelper()</a>, <a class="el" href="vmm_8cpp_source.html#l00037">vmm::defragmentMem()</a>, <a class="el" href="vmm_8cpp_source.html#l00020">vmm::defragmentMemSimple()</a>, <a class="el" href="vmm_8cpp_source.html#l00181">vmm::deleteMem()</a>, <a class="el" href="vmm_8cpp_source.html#l00199">vmm::printNodes()</a>, and <a class="el" href="vmm_8cpp_source.html#l00005">vmm::vmm()</a>.</p>
 
@@ -195,8 +198,9 @@ Data Fields</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>stores misc info. </p>
 
-<p>Definition at line <a class="el" href="vmm_8h_source.html#l00021">21</a> of file <a class="el" href="vmm_8h_source.html">vmm.h</a>.</p>
+<p>Definition at line <a class="el" href="vmm_8h_source.html#l00024">24</a> of file <a class="el" href="vmm_8h_source.html">vmm.h</a>.</p>
 
 <p>Referenced by <a class="el" href="vmm_8cpp_source.html#l00144">vmm::allocateHelper()</a>, <a class="el" href="vmm_8cpp_source.html#l00037">vmm::defragmentMem()</a>, <a class="el" href="vmm_8cpp_source.html#l00181">vmm::deleteMem()</a>, and <a class="el" href="vmm_8cpp_source.html#l00199">vmm::printNodes()</a>.</p>
 
@@ -211,8 +215,9 @@ Data Fields</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>stores the address of the next node. </p>
 
-<p>Definition at line <a class="el" href="vmm_8h_source.html#l00022">22</a> of file <a class="el" href="vmm_8h_source.html">vmm.h</a>.</p>
+<p>Definition at line <a class="el" href="vmm_8h_source.html#l00025">25</a> of file <a class="el" href="vmm_8h_source.html">vmm.h</a>.</p>
 
 <p>Referenced by <a class="el" href="vmm_8cpp_source.html#l00144">vmm::allocateHelper()</a>, <a class="el" href="vmm_8cpp_source.html#l00037">vmm::defragmentMem()</a>, <a class="el" href="vmm_8cpp_source.html#l00020">vmm::defragmentMemSimple()</a>, <a class="el" href="vmm_8cpp_source.html#l00181">vmm::deleteMem()</a>, and <a class="el" href="vmm_8cpp_source.html#l00199">vmm::printNodes()</a>.</p>
 
@@ -227,8 +232,9 @@ Data Fields</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>size of the block in the GPU memory. </p>
 
-<p>Definition at line <a class="el" href="vmm_8h_source.html#l00019">19</a> of file <a class="el" href="vmm_8h_source.html">vmm.h</a>.</p>
+<p>Definition at line <a class="el" href="vmm_8h_source.html#l00022">22</a> of file <a class="el" href="vmm_8h_source.html">vmm.h</a>.</p>
 
 <p>Referenced by <a class="el" href="vmm_8cpp_source.html#l00144">vmm::allocateHelper()</a>, <a class="el" href="vmm_8cpp_source.html#l00037">vmm::defragmentMem()</a>, <a class="el" href="vmm_8cpp_source.html#l00020">vmm::defragmentMemSimple()</a>, <a class="el" href="vmm_8cpp_source.html#l00181">vmm::deleteMem()</a>, <a class="el" href="vmm_8cpp_source.html#l00199">vmm::printNodes()</a>, and <a class="el" href="vmm_8cpp_source.html#l00005">vmm::vmm()</a>.</p>
 
@@ -243,8 +249,9 @@ Data Fields</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>stores the address in GPU memory. </p>
 
-<p>Definition at line <a class="el" href="vmm_8h_source.html#l00017">17</a> of file <a class="el" href="vmm_8h_source.html">vmm.h</a>.</p>
+<p>Definition at line <a class="el" href="vmm_8h_source.html#l00020">20</a> of file <a class="el" href="vmm_8h_source.html">vmm.h</a>.</p>
 
 <p>Referenced by <a class="el" href="vmm_8cpp_source.html#l00144">vmm::allocateHelper()</a>, <a class="el" href="vmm_8cpp_source.html#l00037">vmm::defragmentMem()</a>, <a class="el" href="vmm_8cpp_source.html#l00181">vmm::deleteMem()</a>, <a class="el" href="vmm_8cpp_source.html#l00199">vmm::printNodes()</a>, <a class="el" href="vmm_8cpp_source.html#l00005">vmm::vmm()</a>, and <a class="el" href="vmm_8cpp_source.html#l00210">vmm::~vmm()</a>.</p>
 
@@ -256,7 +263,7 @@ Data Fields</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Wed Apr 22 2020 12:27:20 for MoDNN by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Wed Apr 22 2020 13:01:42 for MoDNN by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>
