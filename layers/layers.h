@@ -321,41 +321,41 @@ namespace network
       /**
        * Allocate memory for a specific layer(layer buffers) on device for forward pass.
        * @param layer_number Layer index.
-       * @param mem_mamager Pointer to Virtual memory manager for assigning device memory. 
+       * @param mem_manager Pointer to Virtual memory manager for assigning device memory. 
        */
       void allocate_mem_layer_fw(int layer_number, vmm * mem_manager);
       
       /**
        * Allocate memory for a specific layer((layer buffers)) on device for backward pass.
        * @param layer_number Layer index.
-       * @param mem_mamager Pointer to Virtual memory manager for assigning device memory. 
+       * @param mem_manager Pointer to Virtual memory manager for assigning device memory. 
        */
       void allocate_mem_layer_bw(int layer_number, vmm * mem_manager);
    
       /**
        * Allocate memory for a specific layer((layer buffers)) on device for backward pass with a prefectching heuristic.
        * @param layer_number Layer index.
-       * @param mem_mamager Pointer to Virtual memory manager for assigning device memory. 
+       * @param mem_manager Pointer to Virtual memory manager for assigning device memory. 
        */
       void allocate_mem_layer_bw_h1(int layer_number, vmm * mem_manager);
 
       /**
        * Deallocate memory for a specific layer((layer buffers)) on device for forward pass.
        * @param layer_number Layer index.
-       * @param mem_mamager Pointer to Virtual memory manager for assigning device memory. 
+       * @param mem_manager Pointer to Virtual memory manager for assigning device memory. 
        */
       void deallocate_mem_layer_fw(int layer_number, vmm * mem_manager,int local=0);
 
       /**
        * Deallocate memory for a specific layer((layer buffers)) on device for backward pass.
        * @param layer_number Layer index.
-       * @param mem_mamager Pointer to Virtual memory manager for assigning device memory. 
+       * @param mem_manager Pointer to Virtual memory manager for assigning device memory. 
        */
       void deallocate_mem_layer_bw(int layer_number, vmm * mem_manager,int local=0);
 
       /**
        * Allocate memory for a neural network params(conv, fc params).
-       * @param mem_mamager Pointer to Virtual memory manager for assigning device memory. 
+       * @param mem_manager Pointer to Virtual memory manager for assigning device memory. 
        */
       void allocate_mem_params(vmm * mem_manager);
 
