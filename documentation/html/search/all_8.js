@@ -1,0 +1,19 @@
+var searchData=
+[
+  ['ibatch_5fsize',['ibatch_size',['../db/d2d/classlayers_1_1_layer.html#acccaf0a0e2b51be5f906cd35a9dfecfd',1,'layers::Layer']]],
+  ['ichannels',['ichannels',['../db/d2d/classlayers_1_1_layer.html#a7a8cbc3a34cf5f159128126c67ed5ab9',1,'layers::Layer']]],
+  ['iheight',['iheight',['../db/d2d/classlayers_1_1_layer.html#aed99be2a4243da8e825988407860ce10',1,'layers::Layer']]],
+  ['ikernel_5fheight',['ikernel_height',['../de/dc6/classlayers_1_1_conv_layer.html#a1dab36c561ce56363490a7ccfdabd048',1,'layers::ConvLayer']]],
+  ['ikernel_5fwidth',['ikernel_width',['../de/dc6/classlayers_1_1_conv_layer.html#ac4c3996f417ead12c1f961ffd5c700ce',1,'layers::ConvLayer']]],
+  ['images',['images',['../d2/d61/class_m_n_i_s_t.html#a870eb7c64c81b07b30458d5defa45116',1,'MNIST']]],
+  ['index_5f',['index_',['../dc/dd5/class_data_loader.html#af1d46203bba5c94a40de23296e2e5e83',1,'DataLoader']]],
+  ['init_5fbuffer_5fmap',['init_buffer_map',['../dd/dcd/layers_8h.html#a2bb98fbee87212254c977e746e4596e1',1,'layers.h']]],
+  ['input_5fdescriptor',['input_descriptor',['../de/dc6/classlayers_1_1_conv_layer.html#a6ebbeac9fa01814ad6baf64ccefc1565',1,'layers::ConvLayer::input_descriptor()'],['../d1/dd9/classlayers_1_1_pooling_layer.html#a9cb35ea2d1872ac2cf59490edd6586b3',1,'layers::PoolingLayer::input_descriptor()'],['../d0/d51/classlayers_1_1relu.html#a3c02ae84ae4031abfb1216089f7b1d9c',1,'layers::relu::input_descriptor()'],['../d6/da5/classlayers_1_1_softmax.html#a0320db6acf6de6512aed801c9cee6962',1,'layers::Softmax::input_descriptor()']]],
+  ['input_5flayer_2eh',['input_layer.h',['../dd/ddc/input__layer_8h.html',1,'']]],
+  ['input_5fsize_5f',['input_size_',['../da/d7f/class_dataset.html#a363d0364cd452d21f3d49a4d9a380c9b',1,'Dataset']]],
+  ['inputlayer',['InputLayer',['../df/de2/classlayers_1_1_input_layer.html',1,'layers']]],
+  ['inputlayer',['InputLayer',['../df/de2/classlayers_1_1_input_layer.html#ae9e499987642478971199bc70b4fa7c7',1,'layers::InputLayer']]],
+  ['insuff_5fmem',['INSUFF_MEM',['../d1/d21/vmm_8h.html#aaef9bf02038d979cb99483a3294eeb6da160b8a05ac197e2bf93c2ece7c3b7b7b',1,'vmm.h']]],
+  ['isfree',['isFree',['../da/d82/structmemory_node.html#a8a91d61affb3452af45967a1ea6e169a',1,'memoryNode']]],
+  ['iwidth',['iwidth',['../db/d2d/classlayers_1_1_layer.html#a1845ee31120e3e23b1a382f553476455',1,'layers::Layer']]]
+];
