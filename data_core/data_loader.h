@@ -19,8 +19,8 @@ class DataLoader {
 
         /**
         * Initializes DataLoader class.
-        @param dataset Dataset to initialize to.
-        @param batch_size number of data items to access in a single batch.
+        * @param dataset Dataset to initialize to.
+        * @param batch_size number of data items to access in a single batch.
         */    
         DataLoader(Dataset* dataset, unsigned batch_size);      
 

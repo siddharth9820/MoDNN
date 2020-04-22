@@ -16,6 +16,11 @@
 #include <cuda.h>
 #include <fstream>
 
+/*! \enum padding_type
+    \brief Type of padding.
+    SAME - for having same input and output dimensions,
+    VALID - No padding
+*/
 enum padding_type{
   SAME,
   VALID

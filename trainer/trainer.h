@@ -46,7 +46,7 @@ void train_with_full_memory(DataLoader * dataloader,Dataset * dataset,seqNetwork
 
 /**
  * Minimum Memory Trainer function.
- * Used to train using full network memory.
+ * Used to train using minimum network memory.
  * @param dataloader DataLoader object pointer for loading data.
  * @param dataset Dataset object pointer.
  * @param nn Neural network pointer.
@@ -54,6 +54,26 @@ void train_with_full_memory(DataLoader * dataloader,Dataset * dataset,seqNetwork
  * @param epochs No of epochs to train.
  */
 void train_with_minimal_memory(DataLoader * dataloader,Dataset * dataset,seqNetwork * nn, vmm * mem_manager, int epochs);
+
+/**
+ * Heuristic Prefectching Trainer function.
+ * Used to train using partial memory with prefetching heuristic.
+ * @param dataloader DataLoader object pointer for loading data.
+ * @param dataset Dataset object pointer.
+ * @param nn Neural network pointer.
+ * @param mem_manager Virtual Memory Manager pointer.
+ * @param epochs No of epochs to train.
+ */
 void train_with_prefetching_half_window(DataLoader * dataloader,Dataset * dataset,seqNetwork * nn, vmm * mem_manager, int epochs);
+
+/**
+ * Heuristic Prefectching Trainer function.
+ * Used to train using partial memory with prefetching next layer.
+ * @param dataloader DataLoader object pointer for loading data.
+ * @param dataset Dataset object pointer.
+ * @param nn Neural network pointer.
+ * @param mem_manager Virtual Memory Manager pointer.
+ * @param epochs No of epochs to train.
+ */
 void train_with_prefetching_next(DataLoader * dataloader,Dataset * dataset,seqNetwork * nn, vmm * mem_manager, int epochs);
 #endif

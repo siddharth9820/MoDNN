@@ -4,9 +4,9 @@
 #include <cstdlib>
 
 /*! \class Dataset
-\brief Abstract class Dataset.
+ \brief Abstract class Dataset.
 
-This class is inherited by the datasets used (mnist_dataset for now).
+ This class is inherited by the datasets used (mnist_dataset for now).
 */
 class Dataset{
     protected:
@@ -31,15 +31,19 @@ class Dataset{
         virtual size_t getDatasetSize() = 0;    
         
         /**
-        * returns the data item and label present at index.
-        * @param index index of the data item and label to fetch 
+        * Returns the data item and label present at index.
+        * @param index index of the data item and label to fetch .
+        * @param input Pointer to the buffer for storing data.
+        * @param output Pointer to the buffer for storing label.
         */
         virtual void get_item(int index, float* input, float* output) = 0;                  
 
         /**
-        * returns all the data items and labels in the range from index start variable to index end variable.
-        * @param start start index of the range
-        * @paran end end index of the range
+        * Returns all the data items and labels in the range from index start variable to index end variable.
+        * @param start start index of the range.
+        * @param end end index of the range.
+        * @param input Pointer to the buffer for storing data/
+        * @param output Pointer to the buffer for storing labels.
         */ 
         virtual void get_item_range(int start, int end, float* input, float* output) = 0;    
         
