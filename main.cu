@@ -14,6 +14,7 @@ using namespace network;
 
 int main(int argc, const char* argv[])
 {
+    // main function for executing the code
     cudnnHandle_t cudnn;
     cudnnCreate(&cudnn);
     cublasHandle_t cublas;
