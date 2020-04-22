@@ -5,6 +5,7 @@
 #include "data_core/data_loader.h"
 #include "trainer/trainer.h"
 #include <cuda_profiler_api.h>
+#include <ctime>
 
 using namespace layers;
 using namespace network;
@@ -63,19 +64,22 @@ int main(int argc, const char* argv[])
                                       "fc "+std::to_string(dataset->getLabelDim()),
                                       "softmax"};
 
+    int MAX_MEM = 0.1*51420064;
+    seqNetwork * nn = new seqNetwork(cudnn,cublas,specs,LR,MAX_MEM,1);
+    std::cout << "Sub batch size - " << nn->sub_batch_size() << std::endl;
 
 
-    // int MAX_MEM = 105458240; //25MB
-    // int USE_MEM = MAX_MEM; //8MB
-    seqNetwork * nn = new seqNetwork(cudnn,cublas,specs,LR,0,0);
-    std::cout << (float)nn->get_total_memory()/1000000 << " MB " <<std::endl;
-    vmm * mem_manager = new vmm(nn->get_total_memory(),&(nn->layer_buffers));
 
-
-    // cudaProfilerStart();
-     //train_with_minimal_memory(dataloader,dataset,nn, mem_manager,5);
-    train_with_full_memory(dataloader,dataset,nn,mem_manager,1);
-    // cudaProfilerStop();
+    // std::cout << (float)nn->get_total_memory()/1000000 << " MB " <<std::endl;
+    // vmm * mem_manager = new vmm(2*nn->get_total_memory(),&(nn->layer_buffers));
+    //
+    // time_t start = time(NULL);
+    // //cudaProfilerStart();
+    // train_with_prefetching_half_window(dataloader,dataset,nn, mem_manager,1);
+    // // train_with_full_memory(dataloader,dataset,nn,mem_manager,5);
+    // //cudaProfilerStop();
+    // time_t end = time(NULL);
+    // std::cout << "Total time - "<< end-start <<"seconds"<<std::endl;
     return 0;
 
 }

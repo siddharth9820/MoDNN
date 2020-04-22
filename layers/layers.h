@@ -130,6 +130,7 @@ namespace network
       void update_weights();
 
       int get_total_memory();
+      unsigned get_max_memory();
       void allocate_all_memory(vmm * mem_manager);
 
 
@@ -144,6 +145,7 @@ namespace network
       float* prefetch_buffer(int layer_number, std::string type,int shape[]);
       void allocate_mem_layer_fw(int layer_number, vmm * mem_manager);
       void allocate_mem_layer_bw(int layer_number, vmm * mem_manager);
+      void allocate_mem_layer_bw_h1(int layer_number, vmm * mem_manager);
 
       void deallocate_mem_layer_fw(int layer_number, vmm * mem_manager,int local=0);
       void deallocate_mem_layer_bw(int layer_number, vmm * mem_manager,int local=0);
@@ -170,8 +172,12 @@ namespace network
       unsigned weights_memory_bytes_;
       unsigned total_seqnet_bytes_;
       unsigned min_seqnet_bytes_;
+      unsigned max_seqnet_memory_;
       float* batch_data_;
       int* batch_labels_;
+      int sync_layer_no_;
+      int prefetch_trigger_layer_no_;
+      int last_prefetched_layer_no_;
   };
 }
 
