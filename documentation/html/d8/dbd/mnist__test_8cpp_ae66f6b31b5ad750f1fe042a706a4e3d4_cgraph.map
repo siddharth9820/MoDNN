@@ -1,0 +1,5 @@
+<map id="main" name="main">
+<area shape="rect" id="node2" href="$dc/dd5/class_data_loader.html#af1976cca10d179632ac998832e9011d5" title="DataLoader::get_next\l_batch" alt="" coords="114,5,261,47"/>
+<area shape="rect" id="node3" href="$da/d7f/class_dataset.html#a7f2a2e278d67d28184f3082cddb7e713" title="Dataset::getDatasetSize" alt="" coords="104,71,271,98"/>
+<area shape="rect" id="node4" href="$da/d7f/class_dataset.html#a7e5afa8b7a8c46da2c54eb7c341a663e" title="Dataset::getInputDim" alt="" coords="114,122,261,149"/>
+</map>
