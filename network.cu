@@ -1131,6 +1131,139 @@ void seqNetwork::allocate_mem_layer_fw(int layer_number, vmm * mem_manager)
 
 }
 
+void seqNetwork::offload_and_call_mem_manager(float ** buff, int bytes, std::string misc, vmm * mem_manager,int layer_number,int offload)
+{
+  int sync=0;
+  std::vector<int>local_pop;
+  std::vector<int>global_pop;
+  while(mem_manager->allocate(buff,bytes,misc) == INSUFF_MEM)
+  {
+    //std::cout << "Requested bytes - " << bytes << " by " << misc << " and free bytes - " << mem_manager->freeSize << std::endl;
+
+    assert(!(locally_allocated_layers.empty()) || !(globally_allocated_layers.empty()));
+
+    if(!locally_allocated_layers.empty()){
+      int layer_local_deletion = locally_allocated_layers.front();
+      if(layer_local_deletion != layer_number-1){
+        //std::cout << " Local Mem Deletion of Layer - "<<layer_local_deletion << " - " <<layer_info[layer_local_deletion][0] << std::endl;
+        this->deallocate_mem_layer_fw2(layer_local_deletion,mem_manager,1,offload);
+        locally_allocated_layers.pop();
+      }
+      else
+      {
+        local_pop.push_back(layer_local_deletion);
+        locally_allocated_layers.pop();
+      }
+    }
+    //while(!globally_allocated_layers.empty()){
+    else{
+      sync=1;
+      int layer_global_deletion = globally_allocated_layers.front();
+      if(layer_global_deletion!=layer_number-2 && layer_global_deletion!= layer_number-1 && layer_global_deletion!=layer_number){
+        //std::cout << " Shared Mem (Output) Deletion of Layer - "<<layer_global_deletion << " - " <<layer_info[layer_global_deletion][0] << std::endl;
+        this->deallocate_mem_layer_fw2(layer_global_deletion,mem_manager,0,offload);
+        globally_allocated_layers.pop();
+        this->link_layer_buffer_fw(layer_global_deletion);
+      }
+      else
+      {
+        global_pop.push_back(layer_global_deletion);
+        globally_allocated_layers.pop();
+      }
+    }
+    //mem_manager->printNodes();
+  }
+
+  for(int i=0;i<local_pop.size();i++)locally_allocated_layers.push(local_pop[i]);
+  for(int i=0;i<global_pop.size();i++)globally_allocated_layers.push(global_pop[i]);
+
+  if(sync)
+    cudaDeviceSynchronize();
+
+}
+
+void seqNetwork::deallocate_mem_layer_fw2(int layer_number, vmm * mem_manager,int local,int offload)
+{
+  int i = layer_number,bytes;
+  int shape[4];
+
+  if(local==0){
+    if(i+1 == num_layers || layer_info[i+1][0]!="flatten")
+    {
+      assert(layer_buffers[i]["output"] != nullptr);
+      bytes = layer_buffer_redundant_bytes[i]["output"];
+      if(offload == 1)
+        offload_buffer(i,"output",shape);
+      //cudaDeviceSynchronize();
+      mem_manager->deleteMem(layer_buffers[i]["output"]);
+      layer_buffers[i]["output"] = nullptr;
+      if(layer_info[i][0] == "flatten"){
+        layer_buffers[i]["input"] = nullptr;
+        if(i>0)
+          layer_buffers[i-1]["output"] = nullptr;
+      }
+    }
+    return;
+  }
+
+  if(layer_info[i][0] == "input")
+  {
+    //allocate labels memory
+    assert(layer_buffers[i]["labels"] != nullptr);
+    bytes = layer_buffer_redundant_bytes[i]["labels"];
+    if(offload == 1)
+      offload_buffer(i,"labels",shape);
+    //cudaDeviceSynchronize();
+    mem_manager->deleteMem(layer_buffers[i]["labels"]);
+    layer_buffers[i]["labels"] = nullptr;
+  }
+  if(layer_info[i][0] == "conv")
+  {
+    //assert(layer_buffers[i]["workspace"] != nullptr);
+    if(layer_buffers[i]["workspace"] != nullptr){
+      bytes = layer_buffer_redundant_bytes[i]["workspace"];
+      mem_manager->deleteMem(layer_buffers[i]["workspace"]);
+      layer_buffers[i]["workspace"] = nullptr;
+    }
+  }
+
+}
+
+
+void seqNetwork::allocate_mem_layer_fw2(int layer_number, vmm * mem_manager)
+{
+  int i = layer_number,bytes;
+  int shape[4];
+
+  if(layer_info[i][0]!="flatten")
+  {
+    assert(layer_buffers[i]["output"] == nullptr);
+    bytes = layer_buffer_redundant_bytes[i]["output"];
+    this->offload_and_call_mem_manager(&layer_buffers[i]["output"],bytes,layer_info[i][0]+" layer - output",mem_manager,layer_number,1);
+    //float * buff, int bytes, std::string misc, vmm * mem_manager,int layer_number,int offload
+  }
+
+  if(layer_info[i][0] == "input")
+  {
+    //allocate labels memory
+    assert(layer_buffers[i]["labels"] == nullptr);
+    bytes = layer_buffer_redundant_bytes[i]["labels"];
+    this->offload_and_call_mem_manager(&layer_buffers[i]["labels"],bytes,"input layer - labels",mem_manager,layer_number,1);
+    //mem_manager->allocate(&layer_buffers[i]["labels"],bytes,"input layer - labels");
+  }
+  if(layer_info[i][0] == "conv")
+  {
+    assert(layer_buffers[i]["workspace"] == nullptr);
+    bytes = layer_buffer_redundant_bytes[i]["workspace"];
+    this->offload_and_call_mem_manager(&layer_buffers[i]["workspace"],bytes,layer_info[i][0]+"conv layer - workspace",mem_manager,layer_number,1);
+    //mem_manager->allocate(&layer_buffers[i]["workspace"],bytes,"conv layer - workspace");
+  }
+  if(layer_number!=0)
+    locally_allocated_layers.push(layer_number);
+  globally_allocated_layers.push(layer_number);
+
+}
+
 
 void seqNetwork::link_layer_buffer_fw(int layer_number)
 {
@@ -1227,6 +1360,60 @@ void seqNetwork::allocate_mem_layer_bw(int layer_number, vmm * mem_manager)
   }
   if(layer_info[i][0] == "conv" || layer_info[i][0] == "fc"|| layer_info[i][0] == "relu"||layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool")
     cudaDeviceSynchronize();
+
+}
+
+void seqNetwork::allocate_mem_layer_bw2(int layer_number, vmm * mem_manager)
+{
+  int i = layer_number,bytes;
+  int shape[4];
+  int to_sync = 0;
+
+  //dinput
+  if(layer_info[i][0]!="flatten" && layer_info[i][0]!="input")
+  {
+    assert(layer_buffers[i]["dinput"] == nullptr);
+    bytes = layer_buffer_redundant_bytes[i]["dinput"];
+    //mem_manager->allocate(&layer_buffers[i]["dinput"],bytes,layer_info[i][0]+" layer - dinput");
+    offload_and_call_mem_manager(&layer_buffers[i]["dinput"], bytes, layer_info[i][0]+" layer - dinput", mem_manager,layer_number,0);
+  }
+  //workspace
+  if(layer_info[i][0] == "conv")
+  {
+    if(layer_buffers[i]["workspace"] == nullptr){
+      bytes = layer_buffer_redundant_bytes[i]["workspace"];
+      //mem_manager->allocate(&layer_buffers[i]["workspace"],bytes,"conv layer - workspace");
+      offload_and_call_mem_manager(&layer_buffers[i]["workspace"], bytes, "conv layer - workspace", mem_manager,layer_number,0);
+    }
+  }
+  //output
+  if(layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool" || layer_info[i][0] == "relu")
+  {
+    if(layer_buffers[i]["output"] == nullptr){
+      bytes = layer_buffer_redundant_bytes[i]["output"];
+      //mem_manager->allocate(&layer_buffers[i]["output"],bytes,layer_info[i][0]+ " output");
+      offload_and_call_mem_manager(&layer_buffers[i]["output"], bytes, layer_info[i][0]+ " output", mem_manager,layer_number,0);
+      std::cout << "Prefetching output " << std::endl;
+      prefetch_buffer(i,"output",shape);
+      to_sync = 1;
+    }
+  }
+  //input
+  if(layer_info[i][0] == "conv" || layer_info[i][0] == "fc"|| layer_info[i][0] == "relu"||layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool")
+  {
+    if(layer_buffers[i]["input"] == nullptr){
+      bytes = layer_buffer_redundant_bytes[i]["input"];
+      //mem_manager->allocate(&layer_buffers[i]["input"],bytes,layer_info[i][0]+ " input");
+      offload_and_call_mem_manager(&layer_buffers[i]["input"], bytes, layer_info[i][0]+ " input", mem_manager,layer_number,0);
+      //std::cout << "Prefetching input " << std::endl;
+      prefetch_buffer(i,"input",shape);
+      //prefetch input
+      to_sync = 1;
+    }
+  }
+  //if(layer_info[i][0] == "conv" || layer_info[i][0] == "fc"|| layer_info[i][0] == "relu"||layer_info[i][0] == "maxpool" || layer_info[i][0] == "avgpool")
+
+  cudaDeviceSynchronize();
 
 }
 

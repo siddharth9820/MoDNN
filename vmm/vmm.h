@@ -49,10 +49,12 @@ enum allocstatus_t{
 
 class vmm{
   private:
-    int freeSize;
+
+    int totalSize;
     struct memoryNode* head;
     float* allocateHelper(float** ptr,int bytes,std::string misc);
     std::vector<std::map<std::string,float*> > *buffers;
+    float * memStartAddress;
 
   public:
 		vmm(int bytes,std::vector<std::map<std::string,float*> > *layer_buffers);
@@ -63,6 +65,8 @@ class vmm{
 		allocstatus_t allocate(float** ptr,int bytes,std::string misc = "None");
 		void deleteMem(float* ptr);
 		void printNodes();
+    void reset();
+    int freeSize;
     ~vmm();
 };
 

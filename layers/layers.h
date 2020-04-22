@@ -107,7 +107,8 @@ namespace network
       std::vector<std::map<std::string,int> > layer_buffer_bytes;
       std::vector<std::map<std::string,int> > layer_buffer_redundant_bytes;
       std::vector< layers::Layer *> layer_objects;
-
+      std::queue<int> locally_allocated_layers;
+      std::queue<int> globally_allocated_layers;
 
       cudnnHandle_t handle;
       cublasHandle_t blas_handle;
@@ -151,7 +152,10 @@ namespace network
       void deallocate_mem_layer_bw(int layer_number, vmm * mem_manager,int local=0);
       void allocate_mem_params(vmm * mem_manager);
 
-
+      void offload_and_call_mem_manager(float ** buff, int bytes, std::string misc, vmm * mem_manager,int layer_number,int offload);
+      void deallocate_mem_layer_fw2(int layer_number, vmm * mem_manager,int local,int offload);
+      void allocate_mem_layer_fw2(int layer_number, vmm * mem_manager);
+      void allocate_mem_layer_bw2(int layer_number, vmm * mem_manager);
       ~seqNetwork();
 
     private:
@@ -163,6 +167,7 @@ namespace network
       int get_total_memory_();
       unsigned getMemoryLowerBound_();
       bool profile_subbatch_validity(unsigned batch_size);
+
 
       unsigned max_sub_batch_size_;
       cudaStream_t memory_stream_;

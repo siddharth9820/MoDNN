@@ -5,7 +5,8 @@
 vmm::vmm(int bytes,std::vector<std::map<std::string,float*> > *layer_buffers){
 
   freeSize = bytes;
-  float * memStartAddress;
+  totalSize = bytes;
+
   cudaMalloc(&memStartAddress,bytes);
 
   head = new struct memoryNode;
@@ -116,7 +117,7 @@ allocstatus_t vmm::allocate(float** ptr,int bytes, std::string misc){
   }
 
   if(bytes>freeSize){
-    std::cout<<"Requested memory more than free memory"<<std::endl;
+    //std::cout<<"Requested memory more than free memory"<<std::endl;
     return INSUFF_MEM;
   }
   *ptr = NULL;
@@ -205,6 +206,40 @@ void vmm::printNodes(){
     iterator = iterator->next;
   }
   std::cout<<" ============================\n\n";
+}
+
+void vmm::reset(){
+  // head = new struct memoryNode;
+  // head->startAddrCuda = memStartAddress;
+  // head->accessPointer = NULL;
+  // head->size = totalSize;
+  // head->isFree = true;
+  // freeSize = totalSize;
+
+
+
+  std::map<std::string,float *>::iterator it;
+  std::string buff_type;
+  float * current_addr;
+  int num_layers = (*buffers).size();
+  for(int i=0;i<num_layers;i++)
+  {
+    it = (*buffers)[i].begin();
+    while(it!=(*buffers)[i].end())
+    {
+      buff_type = it->first;
+
+      if(buff_type != "params" && buff_type != "dparams"){
+        this->deleteMem((*buffers)[i][buff_type]);
+        (*buffers)[i][buff_type] = nullptr;
+
+      }
+      it++;
+    }
+
+  }
+  // std::cout << "Printing memory after reset...." << std::endl;
+  // this->printNodes();
 }
 
 vmm::~vmm()
