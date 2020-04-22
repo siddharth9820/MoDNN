@@ -31,7 +31,7 @@ struct memoryNode{
 /**
 * an enumerator for memory allocation status
 */
-enum allocstatus_t{   
+enum allocstatus_t{
   VMM_SUCCESS,     /*!< memory allocation successful. */
   INSUFF_MEM,      /*!< memory allocation not possible due to insufficient memory. */
   DEFRAG_SUCCESS   /*!< memory allocation and defragmentation successful. */
@@ -59,14 +59,14 @@ This class is used to represent the GPU memory as a linked list memory model.
 */
 class vmm{
   private:
-    int freeSize;               /*!< total size of the free memory. */
+
     struct memoryNode* head;    /*!< pointer to the head of the linked list of the memory nodes. */
-    
+
     /**
     * helper function to allocate memory of size bytes.
     */
-    float* allocateHelper(float** ptr,int bytes,std::string misc);  
-    
+    float* allocateHelper(float** ptr,int bytes,std::string misc);
+
     std::vector<std::map<std::string,float*> > *buffers;
     float * memStartAddress;
 
@@ -102,7 +102,8 @@ class vmm{
     */
 		void printNodes();
     void reset();
-    int freeSize;
+    int freeSize;               /*!< total size of the free memory. */
+    int totalSize;
 
     /**
     * Destroys vmm

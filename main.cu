@@ -28,8 +28,8 @@ int main(int argc, const char* argv[])
 
     // cudaSetDevice(0);
 
-    std::string images_file_str = "mnist_dataset/data/train-images.idx3-ubyte";
-    std::string label_file_str = "mnist_dataset/data/train-labels.idx1-ubyte";
+    std::string images_file_str = "/content/src/mnist_dataset/data/train-images-idx3-ubyte";
+    std::string label_file_str = "/content/src/mnist_dataset/data/train-labels-idx1-ubyte";
     char * images_file = (char*)images_file_str.c_str();
     char * label_file = (char*)label_file_str.c_str();
     std::cout << images_file << " "<<label_file << std::endl;
@@ -74,11 +74,11 @@ int main(int argc, const char* argv[])
 
 
     std::cout << (float)nn->get_total_memory()/1000000 << " MB " <<std::endl;
-    vmm * mem_manager = new vmm(nn->get_total_memory()*0.55,&(nn->layer_buffers));
+    vmm * mem_manager = new vmm(2*nn->get_total_memory(),&(nn->layer_buffers));
     //
     time_t start = time(NULL);
     // //cudaProfilerStart();
-    train_with_minimal_memory(dataloader,dataset,nn, mem_manager,1);
+    train_with_prefetching_half_window(dataloader,dataset,nn, mem_manager,1);
     // // train_with_full_memory(dataloader,dataset,nn,mem_manager,5);
     // //cudaProfilerStop();
 
