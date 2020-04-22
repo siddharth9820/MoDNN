@@ -1,0 +1,5 @@
+<map id="vmm::allocate" name="vmm::allocate">
+<area shape="rect" id="node2" href="$d6/db1/classvmm.html#a3fd839f1dc735f000cc8fdb881885da9" title="vmm::allocateHelper" alt="" coords="183,5,325,32"/>
+<area shape="rect" id="node3" href="$d6/db1/classvmm.html#af6491ff63a7aedde697c4a148b005877" title="vmm::defragmentMem" alt="" coords="177,56,331,83"/>
+<area shape="rect" id="node4" href="$d6/db1/classvmm.html#ac7c7a87ea87705ae76ccdabd987dd30f" title="vmm::defragmentMemSimple" alt="" coords="157,107,351,133"/>
+</map>

@@ -25,6 +25,7 @@
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MoDNN
    </div>
+   <div id="projectbrief">Documentation of MoDNN library. Library implementation based on &#39;moDNN: Memory Optimal Deep Neural Network Training on Graphics Processing Units Published in Transactions on Parallel and Distributed Systems 2019&#39;.</div>
   </td>
  </tr>
  </tbody>
@@ -38,7 +39,6 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   <div id="navrow1" class="tabs">
     <ul class="tablist">
       <li class="current"><a href="index.html"><span>Main&#160;Page</span></a></li>
-      <li><a href="pages.html"><span>Related&#160;Pages</span></a></li>
       <li><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li><a href="annotated.html"><span>Data&#160;Structures</span></a></li>
       <li><a href="files.html"><span>Files</span></a></li>
@@ -80,10 +80,21 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="title">MoDNN Documentation</div>  </div>
 </div><!--header-->
 <div class="contents">
-</div><!-- contents -->
+<div class="textblock"><p>Code for testing the repo is in main.cu. Use Makefile to compile.</p>
+<p>For detailed documentation navigate to documentation/html/index.html and open the file in a browser.</p>
+<p>Current features :-</p><ol type="1">
+<li>Forward Pass and Backward Pass implementations for Convolution(CuDNN), Fully Connected layers (CuBLAS), Softmax(CuDNN), <a class="el" href="d3/d44/class_relu.html" title="Relu Layer. ">Relu</a> (CuDNN), <a class="el" href="dc/d34/class_pooling.html" title="Pooling Layer. ">Pooling</a> and Flatten.</li>
+<li>Support for offloading and prefetching buffers.</li>
+<li>4 modes of training - Minimum memory, total memory, partial memory usage with prefetching and offloading heuristics(two kinds of prefetching heuristic).</li>
+<li><a class="el" href="dc/dd5/class_data_loader.html">DataLoader</a> and <a class="el" href="da/d7f/class_dataset.html" title="Abstract class Dataset. ">Dataset</a> classes for easy accessing and usage of data.</li>
+<li>Virtual Memory Manager for timely defragmentation of device memory.</li>
+<li>Mnist dataset class.</li>
+<li>Clear documentation. </li>
+</ol>
+</div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Wed Apr 22 2020 13:01:42 for MoDNN by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Wed Apr 22 2020 19:01:20 for MoDNN by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

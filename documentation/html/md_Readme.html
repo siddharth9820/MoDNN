@@ -25,6 +25,7 @@
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MoDNN
    </div>
+   <div id="projectbrief">DocumentationofMoDNNlibrary.LibraryimplementationbasedonmoDNN: Memory Optimal Deep Neural Network Training on Graphics Processing Units Published in Transactions on Parallel and Distributed Systems 2019 .</div>
   </td>
  </tr>
  </tbody>
@@ -81,15 +82,20 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p>Code for testing the repo is in main.cu. Use Makefile to compile.</p>
+<p>For detailed documentation navigate to documentation/html/index.html and open the file in a browser.</p>
 <p>Current features :-</p><ol type="1">
-<li>Forward Pass and Backward Pass implementations for Convolution(CuDNN), Fully Connected layers (CuBLAS), Softmax(CuDNN), Relu (CuDNN) and Flatten.</li>
-<li>Function to offload activation buffers for any layer to the host from the device has been implemented.</li>
+<li>Forward Pass and Backward Pass implementations for Convolution(CuDNN), Fully Connected layers (CuBLAS), Softmax(CuDNN), <a class="el" href="d3/d44/class_relu.html" title="Relu Layer. ">Relu</a> (CuDNN), <a class="el" href="dc/d34/class_pooling.html" title="Pooling Layer. ">Pooling</a> and Flatten.</li>
+<li>Support for offloading and prefetching buffers.</li>
+<li>4 modes of training - Minimum memory, total memory, partial memory usage with prefetching and offloading heuristics(two kinds of prefetching heuristic).</li>
+<li><a class="el" href="dc/dd5/class_data_loader.html">DataLoader</a> and <a class="el" href="da/d7f/class_dataset.html" title="Abstract class Dataset. ">Dataset</a> classes for easy accessing and usage of data.</li>
+<li>Virtual Memory Manager for timely defragmentation of device memory.</li>
+<li>Mnist dataset class.</li>
+<li>Clear documentation. </li>
 </ol>
-<p>Note :- Everything is being tested with numpy for correctness in parallel. </p>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Wed Apr 22 2020 13:01:42 for MoDNN by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Wed Apr 22 2020 18:57:57 for MoDNN by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>
