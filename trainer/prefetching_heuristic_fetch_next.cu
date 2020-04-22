@@ -2,7 +2,7 @@
 #define ONE_ITER false
 #define PRINT_OUTPUT false
 
-void train_with_minimal_memory(DataLoader * dataloader,Dataset * dataset,seqNetwork * nn, vmm * mem_manager, int epochs)
+void train_with_prefetching_next(DataLoader * dataloader,Dataset * dataset,seqNetwork * nn, vmm * mem_manager, int epochs)
 {
   int dataset_size = dataset->getDatasetSize(),batch_size = nn->get_max_batch_size();
   float* data_batch, *label_batch;
@@ -87,15 +87,17 @@ void train_with_minimal_memory(DataLoader * dataloader,Dataset * dataset,seqNetw
         epoch_loss += categorical_cross_entropy_loss(output,shape,label_batch_integer+loop_no*sub_batch_size);
         //backward
         if(loop_no>0)beta=1.0;
+        nn->allocate_mem_layer_bw(nn->num_layers-1,mem_manager);
         for(int i=nn->num_layers-1;i>=0;i--)
         {
           //std::cout << "Layer "<<i << " " << nn->layer_info[i][0] << " Backward" << std::endl;
-          nn->allocate_mem_layer_bw(i,mem_manager);
-
-          //mem_manager->printNodes();
-          nn->link_layer_buffer_bw(i);
           nn->backward_layer(i,beta);
-          cudaDeviceSynchronize();
+          if(i>0)
+            nn->allocate_mem_layer_bw(i-1,mem_manager);
+          nn->link_layer_buffer_bw(i);
+          //mem_manager->printNodes();
+
+//          cudaDeviceSynchronize();
           nn->deallocate_mem_layer_bw(i,mem_manager,1);
           if(i!=nn->num_layers-1)
           {
