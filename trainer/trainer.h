@@ -76,4 +76,6 @@ void train_with_prefetching_half_window(DataLoader * dataloader,Dataset * datase
  * @param epochs No of epochs to train.
  */
 void train_with_prefetching_next(DataLoader * dataloader,Dataset * dataset,seqNetwork * nn, vmm * mem_manager, int epochs);
+void offload_when_needed(DataLoader * dataloader,Dataset * dataset,seqNetwork * nn, vmm * mem_manager, int epochs);
+
 #endif

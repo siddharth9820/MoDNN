@@ -169,7 +169,8 @@ namespace network
       std::vector<std::map<std::string,int> > layer_buffer_bytes; /*!< Vector of maps that point to each layer's memory requirement(in bytes). */
       std::vector<std::map<std::string,int> > layer_buffer_redundant_bytes; /*!< Vector of maps that point to each layer's redundant memory used. */
       std::vector< layers::Layer *> layer_objects; /*!< Vector of Layer object pointers. */
-
+      std::queue<int> locally_allocated_layers;
+      std::queue<int> globally_allocated_layers;
 
       cudnnHandle_t handle; /*!< CUDNN handle. */
       cublasHandle_t blas_handle; /*!< CUBLAS handle */
@@ -183,6 +184,7 @@ namespace network
        * @param max_allowed_bytes Maximum usable GPU memory.
        * @param sub_batch_selection Set true to enable sub_batch_selection algorithm.
        */
+
       seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std::string> &specs, float lr, unsigned max_allowed_bytes,int sub_batch_selection);
       
       /**
@@ -358,6 +360,11 @@ namespace network
        */
       void deallocate_mem_layer_bw(int layer_number, vmm * mem_manager,int local=0);
 
+
+      void offload_and_call_mem_manager(float ** buff, int bytes, std::string misc, vmm * mem_manager,int layer_number,int offload);
+      void deallocate_mem_layer_fw2(int layer_number, vmm * mem_manager,int local,int offload);
+      void allocate_mem_layer_fw2(int layer_number, vmm * mem_manager);
+      void allocate_mem_layer_bw2(int layer_number, vmm * mem_manager);
       /**
        * Allocate memory for a neural network params(conv, fc params).
        * @param mem_manager Pointer to Virtual memory manager for assigning device memory. 

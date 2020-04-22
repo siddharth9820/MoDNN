@@ -4,7 +4,7 @@ home = /content/src
 layers = conv_layer.o fc_layer.o flatten_layer.o input_layer.o layers.o pooling_layer.o softmax_layer.o relu_layer.o
 layers_headers = $(home)/layers/conv_layer.h $(home)/layers/fc_layer.h $(home)/layers/flatten_layer.h $(home)/layers/input_layer.h $(home)/layers/layers.h $(home)/layers/pooling_layer.h $(home)/layers/softmax_layer.h $(home)/layers/relu_layer.h
 kernels = fc_kernel.o transpose_kernel.o softmax_kernel.o update_kernel.o
-trainers = full_mem_trainer.o min_mem_trainer.o prefetching_heuristic_half_window.o prefetching_heuristic_fetch_next.o
+trainers = full_mem_trainer.o min_mem_trainer.o prefetching_heuristic_half_window.o prefetching_heuristic_fetch_next.o offload_when_needed.o
 
 cc = nvcc
 flags = -arch=sm_35 -std=c++11
