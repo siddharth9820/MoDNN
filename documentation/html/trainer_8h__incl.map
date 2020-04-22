@@ -1,0 +1,7 @@
+<map id="trainer/trainer.h" name="trainer/trainer.h">
+<area shape="rect" id="node2" href="$layers_8h.html" title="../layers/layers.h" alt="" coords="562,80,681,107"/>
+<area shape="rect" id="node19" href="$mnist_8h.html" title="../mnist_dataset/mnist.h" alt="" coords="953,80,1116,107"/>
+<area shape="rect" id="node21" href="$data__loader_8h.html" title="../data_core/data_loader.h" alt="" coords="1140,80,1313,107"/>
+<area shape="rect" id="node3" href="$vmm_8h.html" title="../vmm/vmm.h" alt="" coords="231,155,337,181"/>
+<area shape="rect" id="node20" href="$dataset_8h.html" title="../data_core/dataset.h" alt="" coords="1112,155,1261,181"/>
+</map>
