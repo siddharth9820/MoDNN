@@ -78,7 +78,7 @@ int main(int argc, const char* argv[])
     //
     time_t start = time(NULL);
     // //cudaProfilerStart();
-    train_with_prefetching_half_window(dataloader,dataset,nn, mem_manager,1);
+    train_with_prefetching_half_window(dataloader,dataset,nn, mem_manager,30);
     // // train_with_full_memory(dataloader,dataset,nn,mem_manager,5);
     // //cudaProfilerStop();
 
