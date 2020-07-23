@@ -44,9 +44,9 @@ seqNetwork::seqNetwork(cudnnHandle_t cudnn,cublasHandle_t cublas,std::vector<std
   if(sub_batch_selection == 0)
     sub_batch_size_ = max_sub_batch_size_;
   else
-    sub_batch_size_ = calculate_sub_batch();
+   sub_batch_size_ = calculate_sub_batch();
 
-  std::cout << "Subbatch size : " << sub_batch_size_ << std::endl;
+  std::cout << "=============Subbatch size : ================\n" << sub_batch_size_ << std::endl;
   make_nn_objs(sub_batch_size_);
   total_seqnet_bytes_ = get_total_memory_();
 
@@ -204,7 +204,7 @@ bool seqNetwork::profile_subbatch_validity(unsigned batch_size) {
     is_already_present = false;
   }
 
-  std::cout << "Max memory requirement for batch_size : " << batch_size << " : " << max_memory_requirement << std::endl;
+  //std::cout << "Max memory requirement for batch_size : " << batch_size << " : " << max_memory_requirement << std::endl;
   return (max_memory_requirement < max_allowed_bytes_);
 
 }
@@ -314,7 +314,7 @@ void seqNetwork::make_nn_objs(unsigned sub_batch_size)
   for(int i=0;i<num_layers;i++)
   {
     layer_type = layer_info[i][0];
-    std::cout << "Layer "<<i+1<<" : "<<layer_type << std::endl;
+    //std::cout << "Layer "<<i+1<<" : "<<layer_type << std::endl;
     layer_offloaded_buffers[i] = init_buffer_map();
     layer_buffers[i] = init_buffer_map();
     if(layer_type == "input")
@@ -326,7 +326,7 @@ void seqNetwork::make_nn_objs(unsigned sub_batch_size)
       num_classes = atoi(layer_info[i][5].c_str());
       this->batch_size = batch_size;
 
-      std::cout << "Setting up input layer - "<< batch_size <<" " << rows << " "<<columns <<" "<<channels << std::endl;
+      //std::cout << "Setting up input layer - "<< batch_size <<" " << rows << " "<<columns <<" "<<channels << std::endl;
 
       InputLayer * new_ip = new InputLayer(batch_size,rows,columns,channels,num_classes);
       layer_objects.push_back(new_ip);
@@ -363,7 +363,7 @@ void seqNetwork::make_nn_objs(unsigned sub_batch_size)
       columns = shape[2];
       channels = shape[3];
 
-      std::cout << "Setting up conv layer - "<< batch_size <<" " << rows << " "<<columns <<" "<<channels << std::endl;
+      //std::cout << "Setting up conv layer - "<< batch_size <<" " << kernel_rows << " "<< kernel_cols <<" "<< kernel_channels << std::endl;
 
       ConvLayer * new_conv = new ConvLayer(handle,batch_size,rows,columns,channels,kernel_rows,kernel_cols,kernel_channels,VALID);
 
@@ -433,7 +433,7 @@ void seqNetwork::make_nn_objs(unsigned sub_batch_size)
       input_height = shape[1];
       output_height = atoi(layer_info[i][1].c_str());
 
-      std::cout << "Setting up fc layer - "<< batch_size <<" " << input_height << std::endl;
+      //std::cout << "Setting up fc layer - "<< batch_size <<" " << input_height << std::endl;
 
       FCLayer * new_fc = new FCLayer(blas_handle,batch_size,input_height,output_height);
 
@@ -546,7 +546,7 @@ void seqNetwork::make_nn_objs(unsigned sub_batch_size)
       columns = shape[2];
       channels = shape[3];
 
-      std::cout << "Setting up pooling layer - "<< batch_size <<" " << rows << " "<<columns <<" "<<channels << std::endl;
+      //std::cout << "Setting up pooling layer - "<< batch_size <<" " << rows << " "<<columns <<" "<<channels << std::endl;
 
       PoolingLayer* new_pooling = new PoolingLayer(&handle,
         window_height,
@@ -1068,7 +1068,7 @@ void seqNetwork::allocate_all_memory(vmm * mem_manager)
   int total_bytes=0;
   for(int i=0;i<num_layers;i++)
   {
-    std::cout << layer_info[i][0] << std::endl;
+    //std::cout << layer_info[i][0] << std::endl;
     it = layer_buffer_bytes[i].begin();
     while(it!=layer_buffer_bytes[i].end())
     {
@@ -1082,7 +1082,7 @@ void seqNetwork::allocate_all_memory(vmm * mem_manager)
       it++;
     }
   }
-  std::cout << total_bytes << std::endl;
+  //std::cout << total_bytes << std::endl;
   link_all_buffers();
 }
 
@@ -1393,7 +1393,7 @@ void seqNetwork::allocate_mem_layer_bw2(int layer_number, vmm * mem_manager)
       bytes = layer_buffer_redundant_bytes[i]["output"];
       //mem_manager->allocate(&layer_buffers[i]["output"],bytes,layer_info[i][0]+ " output");
       offload_and_call_mem_manager(&layer_buffers[i]["output"], bytes, layer_info[i][0]+ " output", mem_manager,layer_number,0);
-      std::cout << "Prefetching output " << std::endl;
+      //std::cout << "Prefetching output " << std::endl;
       prefetch_buffer(i,"output",shape);
       to_sync = 1;
     }

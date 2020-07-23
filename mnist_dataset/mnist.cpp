@@ -14,11 +14,19 @@ MNIST::MNIST(char* images_filename, char* labels_filename, bool shuffle) {
     if (shuffle)
         seed = std::chrono::system_clock::now().time_since_epoch().count();
 
+    std::cout << "Creating Dataset" << std::endl;
+
     label_size_ = 1;
+
+    std::cout << "Parsing images file" << std::endl;
 
     parse_images_file(images_filename);
 
+    std::cout << "Parsing labels file" << std::endl;
+
     parse_labels_file(labels_filename);
+
+    std::cout << "Parsed labels file" << std::endl;
 
     if (shuffle){
         std::shuffle(images.begin(), images.end(), std::default_random_engine(seed));
@@ -53,7 +61,8 @@ void MNIST::parse_images_file(char* images_file) {
     data[0] = 0;
     data[1] = 0;
     data[2] = 0;
-    while(!fd.eof()) {
+    while((!fd.eof()) && (i<dataset_size_)) {
+        //std::cout << "Image Number " << i << std::endl;
         images[i].resize(input_size_);
         for (int j = 0; j < input_size_; j++) {
             fd.read(&data[3], 1);
@@ -76,7 +85,7 @@ void MNIST::parse_labels_file(char* label_file) {
     dataset_size_ = reverseBits(*((unsigned int*) data));
 
     labels.resize(dataset_size_);
-    while(!fd.eof()) {
+    while((!fd.eof()) && (i < dataset_size_)){
         fd.read(&value, 1);
         labels[i] = int(value);
         i++;

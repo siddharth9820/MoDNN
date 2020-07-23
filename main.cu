@@ -28,8 +28,8 @@ int main(int argc, const char* argv[])
 
     // cudaSetDevice(0);
 
-    std::string images_file_str = "/content/MoDNN/mnist_dataset/data/train-images-idx3-ubyte";
-    std::string label_file_str = "/content/MoDNN/mnist_dataset/data/train-labels-idx1-ubyte";
+    std::string images_file_str = "/lustre/ssingh37/MoDNN/mnist_dataset/data/train-images-idx3-ubyte";
+    std::string label_file_str = "/lustre/ssingh37/MoDNN/mnist_dataset/data/train-labels-idx1-ubyte";
     char * images_file = (char*)images_file_str.c_str();
     char * label_file = (char*)label_file_str.c_str();
     std::cout << images_file << " "<<label_file << std::endl;
@@ -39,6 +39,7 @@ int main(int argc, const char* argv[])
 
     std::cout << "Creating Dataset" << std::endl;
     Dataset* dataset= new MNIST(images_file, label_file, true);
+    std::cout << "Created Dataset " << std::endl;
     dataset_size = dataset->getDatasetSize();
 
     std::cout << "Creating DataLoader" << std::endl;
@@ -53,32 +54,32 @@ int main(int argc, const char* argv[])
     //std::vector<std::string> specs = {input_spec,"flatten","fc "+std::to_string(dataset->getLabelDim()),"softmax"};
     //le net specification
     std::vector<std::string> specs = {input_spec,
-                                      "conv 5 5 20",
-                                      "relu",
-                                      "maxpool 2 2 2 2",
-                                      "conv 5 5 50",
-                                      "relu",
-                                      "maxpool 2 2 2 2",
-                                      "flatten",
-                                      "fc 500",
-                                      "relu",
-                                      "fc "+std::to_string(dataset->getLabelDim()),
-                                      "softmax"};
+        "conv 5 5 20",
+        "relu",
+        "maxpool 2 2 2 2",
+        "conv 5 5 50",
+        "relu",
+        "maxpool 2 2 2 2",
+        "flatten",
+        "fc 500",
+        "relu",
+        "fc "+std::to_string(dataset->getLabelDim()),
+        "softmax"};
 
 
 
     //int MAX_MEM = 0.44*62091168;
-    seqNetwork * nn = new seqNetwork(cudnn,cublas,specs,LR,0,0);
+    seqNetwork * nn = new seqNetwork(cudnn,cublas,specs,LR,50000000,1);
     //std::cout << "Sub batch size - " << nn->sub_batch_size() << std::endl;
 
 
 
     std::cout << (float)nn->get_total_memory()/1000000 << " MB " <<std::endl;
-    vmm * mem_manager = new vmm(2*nn->get_total_memory(),&(nn->layer_buffers));
+    vmm * mem_manager = new vmm(50000000,&(nn->layer_buffers));
     //
     time_t start = time(NULL);
     // //cudaProfilerStart();
-    train_with_prefetching_half_window(dataloader,dataset,nn, mem_manager,30);
+    train_with_prefetching_next(dataloader,dataset,nn, mem_manager,10);
     // // train_with_full_memory(dataloader,dataset,nn,mem_manager,5);
     // //cudaProfilerStop();
 
